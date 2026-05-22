@@ -1,0 +1,2838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GeoVec Studio — Cogniterra Labs</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg0:#07090f;--bg1:#0d1219;--bg2:#121a26;--bg3:#182032;
+  --bd0:#1c2840;--bd1:#253354;--bd2:#2e4068;
+  --ac:#00d4aa;--ac-dim:rgba(0,212,170,.12);
+  --er:#ff4d6d;--wn:#ffb547;--ok:#3dba6e;--nfo:#4488ff;
+  --tx0:#dceaff;--tx1:#7a95bb;--tx2:#3f5878;--tx3:#243248;
+  --f:Inter,sans-serif;--fm:'JetBrains Mono',monospace;
+  --r1:4px;--r2:7px;--r3:11px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--f);font-size:12px;background:var(--bg0);color:var(--tx0);
+  display:flex;flex-direction:column}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg0)}
+::-webkit-scrollbar-thumb{background:var(--bd1);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--bd2)}
+
+/* ── HEADER ── */
+.hdr{height:46px;background:var(--bg1);border-bottom:1px solid var(--bd0);
+  display:flex;align-items:center;padding:0 10px;gap:9px;flex-shrink:0;z-index:300}
+.logo-pill{background:#fff;border-radius:var(--r1);padding:3px 8px;height:34px;
+  display:flex;align-items:center;flex-shrink:0}
+.logo-pill img{height:26px;width:auto;display:block}
+.hdr-vline{width:1px;height:22px;background:var(--bd0);flex-shrink:0}
+.hdr-name{line-height:1.35}
+.hdr-name .title{font-size:13px;font-weight:600;letter-spacing:.03em}
+.hdr-name .sub{font-size:9px;color:var(--tx2);letter-spacing:.06em;text-transform:uppercase}
+.hdr-gap{flex:1}
+.hdr-btns{display:flex;gap:4px}
+.creds{text-align:right;line-height:1.5;padding-left:10px;border-left:1px solid var(--bd0)}
+.creds .name{font-size:10px;font-weight:600;color:var(--ac)}
+.creds .dev{font-size:9px;color:var(--tx2)}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--f);background:var(--bg2);border:1px solid var(--bd0);
+  color:var(--tx0);padding:4px 10px;border-radius:var(--r1);font-size:11px;
+  cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  white-space:nowrap;transition:all .12s;line-height:1.4}
+.btn:hover{background:var(--bg3);border-color:var(--bd1)}
+.btn.pri{background:var(--ac-dim);border-color:var(--ac);color:var(--ac)}
+.btn.pri:hover{background:var(--ac);color:#000}
+.btn.red{border-color:var(--er);color:var(--er)}
+.btn.red:hover{background:var(--er);color:#fff}
+.btn:disabled{opacity:.3;pointer-events:none}
+
+/* ── LAYOUT ── */
+.wsp{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── LEFT SIDEBAR ── */
+.sdb{width:255px;background:var(--bg1);border-right:1px solid var(--bd0);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.s-hdr{padding:6px 12px;font-size:9px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx2);background:var(--bg0);
+  border-bottom:1px solid var(--bd0);display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0}
+.s-body{padding:10px}
+
+/* upload zone */
+.upz{border:1.5px dashed var(--bd1);border-radius:var(--r2);padding:14px 10px;
+  text-align:center;cursor:pointer;transition:all .18s;background:rgba(0,0,0,.15)}
+.upz:hover,.upz.dov{border-color:var(--ac);background:var(--ac-dim)}
+.upz-ico{font-size:24px;margin-bottom:6px;opacity:.55}
+.upz p{font-size:11px;color:var(--tx1);line-height:1.55}
+.upz strong{color:var(--ac)}
+.fmt-row{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:7px}
+.fmt-tag{font-size:9px;font-family:var(--fm);background:var(--bg0);
+  border:1px solid var(--bd0);padding:1px 5px;border-radius:3px;color:var(--tx2)}
+.upz input{display:none}
+
+/* layer list */
+.lyr-scroll{flex:1;overflow-y:auto;min-height:0}
+.lyr-empty{padding:22px 14px;text-align:center;color:var(--tx3);
+  font-size:11px;line-height:1.9}
+.lyr-item{display:flex;align-items:center;padding:5px 8px 5px 6px;gap:6px;
+  cursor:pointer;border-left:2px solid transparent;transition:background .1s;user-select:none}
+.lyr-item:hover{background:var(--bg2)}
+.lyr-item.act{background:var(--bg2);border-left-color:var(--ac)}
+.lyr-dot{width:11px;height:11px;border-radius:2px;flex-shrink:0;cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);transition:transform .12s}
+.lyr-dot:hover{transform:scale(1.25)}
+.lyr-info{flex:1;min-width:0}
+.lyr-name{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lyr-meta{display:flex;gap:5px;margin-top:1px;align-items:center}
+.lyr-badge{font-size:8px;font-family:var(--fm);background:var(--bg0);
+  border:1px solid var(--bd0);padding:0 3px;border-radius:2px;color:var(--tx2);flex-shrink:0}
+.lyr-cnt{font-size:9px;color:var(--tx2)}
+.lyr-acts{display:flex;gap:0;opacity:0;transition:opacity .1s;flex-shrink:0}
+.lyr-item:hover .lyr-acts,.lyr-item.act .lyr-acts{opacity:1}
+.ib{background:none;border:none;color:var(--tx2);cursor:pointer;
+  padding:2px 5px;border-radius:3px;font-size:11px;transition:all .1s;font-family:var(--f)}
+.ib:hover{background:var(--bd0);color:var(--tx0)}
+.ib.del:hover{color:var(--er)}
+.lyr-hidden .lyr-name{opacity:.35}
+.lyr-hidden .lyr-dot{opacity:.3}
+/* opacity row */
+.opa-row{padding:4px 8px 7px 25px;background:var(--bg2);display:none}
+.lyr-item.act~.opa-row{display:flex}
+.opa-row label{font-size:9px;color:var(--tx2);width:44px;flex-shrink:0}
+.opa-row input[type=range]{flex:1;-webkit-appearance:none;height:3px;
+  background:var(--bd1);border-radius:2px;outline:none;cursor:pointer}
+.opa-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+  width:12px;height:12px;border-radius:50%;background:var(--ac);cursor:pointer}
+.opa-val{font-size:9px;font-family:var(--fm);color:var(--ac);
+  width:28px;text-align:right;flex-shrink:0}
+
+/* ── MAP AREA ── */
+.map-wrap{flex:1;position:relative;overflow:hidden}
+#map{width:100%;height:100%;background:#050810}
+
+/* floating toolbar */
+.ftb{position:absolute;top:10px;left:10px;z-index:400;
+  display:flex;flex-direction:column;gap:3px}
+.ftb-sep{height:5px}
+.ftb-btn{width:34px;height:34px;background:var(--bg1);border:1px solid var(--bd0);
+  color:var(--tx1);cursor:pointer;border-radius:var(--r1);font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+  position:relative;flex-shrink:0}
+.ftb-btn:hover{background:var(--bg2);color:var(--tx0);border-color:var(--bd1)}
+.ftb-btn.on{background:var(--ac-dim);border-color:var(--ac);color:var(--ac)}
+.ftb-btn[data-tip]:hover::after{content:attr(data-tip);position:absolute;
+  left:40px;top:50%;transform:translateY(-50%);background:var(--bg1);
+  border:1px solid var(--bd1);padding:3px 8px;border-radius:3px;
+  white-space:nowrap;font-size:10px;font-family:var(--f);
+  color:var(--tx0);pointer-events:none;z-index:100}
+
+/* basemap picker */
+.bm-wrap{position:absolute;top:10px;right:46px;z-index:400}
+.bm-wrap select{background:var(--bg1);border:1px solid var(--bd0);
+  color:var(--tx1);font-size:10px;padding:5px 8px;border-radius:var(--r1);
+  font-family:var(--fm);cursor:pointer;outline:none}
+
+/* measure display */
+.meas-box{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+  z-index:400;background:var(--bg1);border:1px solid var(--ac);
+  border-radius:var(--r1);padding:5px 14px;font-size:11px;font-family:var(--fm);
+  color:var(--ac);display:none;pointer-events:none}
+.meas-box.vis{display:block}
+
+/* ── RIGHT OPS PANEL ── */
+.ops{width:252px;background:var(--bg1);border-left:1px solid var(--bd0);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0}
+
+/* stats block */
+.stats-blk{padding:10px 12px;border-bottom:1px solid var(--bd0);flex-shrink:0}
+.stats-blk h3{font-size:9px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx2);margin-bottom:7px}
+.stats-empty{font-size:10px;color:var(--tx3);padding:2px 0}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.sc{background:var(--bg0);border:1px solid var(--bd0);border-radius:var(--r1);padding:5px 7px}
+.sc.full{grid-column:1/-1}
+.sc .lbl{font-size:9px;color:var(--tx2);margin-bottom:1px}
+.sc .val{font-size:11px;font-family:var(--fm);color:var(--ac);
+  font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc.full .val{color:var(--tx0);font-size:10px;font-family:var(--f)}
+
+/* ops groups */
+.ops-grp{padding:9px 12px;border-bottom:1px solid var(--bd0);flex-shrink:0}
+.ops-grp h3{font-size:9px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx2);margin-bottom:7px}
+.opb{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  background:var(--bg0);border:1px solid var(--bd0);border-radius:var(--r1);
+  color:var(--tx0);cursor:pointer;width:100%;text-align:left;
+  font-family:var(--f);font-size:11px;margin-bottom:4px;transition:all .12s}
+.opb:last-child{margin-bottom:0}
+.opb:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-dim)}
+.opb .ic{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.opb .nm{font-weight:500}
+.opb .ds{font-size:9px;color:var(--tx2);margin-top:1px;line-height:1.3}
+.opb:hover .ds{color:rgba(0,212,170,.55)}
+
+/* ── BOTTOM ATTR TABLE ── */
+.attr-panel{height:0;background:var(--bg1);border-top:1px solid var(--bd0);
+  overflow:hidden;transition:height .2s;flex-shrink:0}
+.attr-panel.open{height:190px}
+.attr-hdr{padding:5px 12px;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--bd0);flex-shrink:0}
+.attr-hdr h3{font-size:9px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx2)}
+.attr-hdr .right{display:flex;gap:5px;align-items:center}
+.attr-meta{font-size:9px;color:var(--tx2);font-family:var(--fm)}
+.attr-filter{background:var(--bg0);border:1px solid var(--bd0);
+  color:var(--tx0);padding:3px 7px;border-radius:var(--r1);
+  font-size:10px;font-family:var(--f);width:130px;outline:none}
+.attr-filter:focus{border-color:var(--ac)}
+.attr-body{overflow:auto;height:calc(100% - 28px)}
+.attr-body table{width:100%;border-collapse:collapse;
+  font-size:10px;font-family:var(--fm)}
+.attr-body th{background:var(--bg2);padding:4px 8px;text-align:left;
+  border-bottom:1px solid var(--bd0);font-size:9px;color:var(--tx1);
+  position:sticky;top:0;cursor:pointer;user-select:none;
+  white-space:nowrap;z-index:1;text-transform:uppercase;letter-spacing:.06em}
+.attr-body th:hover{color:var(--ac)}
+.attr-body th.sort-asc::after{content:' ▲'}
+.attr-body th.sort-desc::after{content:' ▼'}
+.attr-body td{padding:3px 8px;border-bottom:1px solid rgba(28,40,64,.4);
+  white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;
+  color:var(--tx1)}
+.attr-body tr:hover td{background:var(--bg2);color:var(--tx0)}
+.attr-body td:first-child{color:var(--tx3)}
+.attr-no-data{padding:14px;color:var(--tx3);text-align:center}
+
+/* ── STATUS BAR ── */
+.sbar{height:22px;background:var(--bg1);border-top:1px solid var(--bd0);
+  padding:0 12px;display:flex;align-items:center;gap:10px;
+  font-size:10px;font-family:var(--fm);color:var(--tx2);flex-shrink:0}
+.sbar .tool-tag{color:var(--ac);font-weight:600}
+.sbar .sep{color:var(--bd1)}
+.sbar .crd{color:var(--nfo)}
+.sbar .copy{font-size:9px;color:var(--tx3);margin-left:auto}
+
+/* ── MODALS ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:1000;align-items:center;justify-content:center}
+.overlay.vis{display:flex}
+.modal{background:var(--bg1);border:1px solid var(--bd1);border-radius:var(--r3);
+  padding:18px;min-width:310px;max-width:430px;width:92%;
+  box-shadow:0 24px 80px rgba(0,0,0,.8)}
+.modal h2{font-size:13px;font-weight:600;margin-bottom:14px;
+  display:flex;align-items:center;gap:7px}
+.frow{margin-bottom:10px}
+.frow label{display:block;font-size:9px;color:var(--tx2);margin-bottom:3px;
+  text-transform:uppercase;letter-spacing:.08em}
+.frow input,.frow select,.frow textarea{width:100%;background:var(--bg0);
+  border:1px solid var(--bd0);color:var(--tx0);padding:6px 9px;
+  border-radius:var(--r1);font-size:11px;font-family:var(--f);outline:none}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:var(--ac)}
+.frow select option{background:var(--bg0)}
+.frow .hint{font-size:9px;color:var(--tx2);margin-top:3px}
+.mac{display:flex;gap:7px;justify-content:flex-end;
+  padding-top:12px;margin-top:4px;border-top:1px solid var(--bd0)}
+
+/* export format grid */
+.fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.fmt-opt{background:var(--bg0);border:1px solid var(--bd0);border-radius:var(--r1);
+  padding:7px;cursor:pointer;transition:all .12s;display:flex;flex-direction:column;
+  align-items:center;gap:3px}
+.fmt-opt:hover{border-color:var(--ac)}
+.fmt-opt input[type=radio]{accent-color:var(--ac)}
+.fmt-opt.sel{border-color:var(--ac);background:var(--ac-dim)}
+.fmt-ico{font-size:18px}
+.fmt-lbl{font-size:10px;font-family:var(--fm);font-weight:600}
+.fmt-ext{font-size:8px;color:var(--tx2)}
+
+/* ── LOADING OVERLAY ── */
+.ldg{display:none;position:fixed;inset:0;background:rgba(7,9,15,.92);
+  z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.ldg.vis{display:flex}
+.spin{width:30px;height:30px;border:2px solid var(--bd1);
+  border-top-color:var(--ac);border-radius:50%;animation:sp .5s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ldg p{font-size:11px;color:var(--tx1);font-family:var(--fm)}
+
+/* ── NOTIFICATION ── */
+.ntf{position:fixed;bottom:28px;right:14px;background:var(--bg1);
+  border:1px solid var(--bd1);border-radius:var(--r2);
+  padding:9px 14px;font-size:11px;z-index:3000;
+  transform:translateY(10px);opacity:0;transition:all .2s;
+  max-width:300px;line-height:1.5;pointer-events:none}
+.ntf.vis{transform:translateY(0);opacity:1}
+.ntf.ok{border-left:3px solid var(--ok)}
+.ntf.er{border-left:3px solid var(--er)}
+.ntf.nfo{border-left:3px solid var(--ac)}
+.ntf.wn{border-left:3px solid var(--wn)}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-bar a{background:var(--bg1)!important;color:var(--tx0)!important;
+  border-color:var(--bd0)!important;font-size:16px!important;line-height:26px!important}
+.leaflet-bar a:hover{background:var(--bg2)!important;color:var(--ac)!important}
+.leaflet-control-zoom{border:1px solid var(--bd0)!important;
+  border-radius:var(--r1)!important;overflow:hidden}
+.leaflet-popup-content-wrapper{background:var(--bg1);color:var(--tx0);
+  border:1px solid var(--bd1);border-radius:var(--r2);
+  font-size:11px;font-family:var(--f);box-shadow:0 8px 30px rgba(0,0,0,.7)}
+.leaflet-popup-tip{background:var(--bg1)}
+.leaflet-popup-close-button{color:var(--tx1)!important;font-size:14px!important}
+.leaflet-popup-content{margin:10px 12px;line-height:1.6}
+.leaflet-control-scale-line{background:rgba(13,18,25,.85);border-color:var(--tx2);
+  color:var(--tx2);font-size:9px;padding:2px 5px}
+.leaflet-container{font-family:var(--f)!important}
+
+/* layer count badge */
+.lcnt{background:var(--ac);color:#000;padding:1px 6px;
+  border-radius:10px;font-size:9px;font-weight:700}
+
+/* attr panel layer name highlight */
+#at-lyr-name{color:var(--tx0)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="ldg" id="ldg"><div class="spin"></div><p id="ldg-txt">Processing…</p></div>
+
+<!-- OP MODAL -->
+<div class="overlay" id="op-modal">
+  <div class="modal">
+    <h2 id="op-title"></h2>
+    <div id="op-body"></div>
+    <div class="mac">
+      <button class="btn" onclick="closeOpModal()">Cancel</button>
+      <button class="btn pri" onclick="execOp()">▶ Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="overlay" id="exp-modal">
+  <div class="modal">
+    <h2>⬇ Export Layer</h2>
+    <div class="frow">
+      <label>Layer</label>
+      <select id="exp-layer-sel"></select>
+    </div>
+    <div class="frow">
+      <label>Format</label>
+      <div class="fmt-grid" id="fmt-grid"></div>
+    </div>
+    <div class="mac">
+      <button class="btn" onclick="closeExpModal()">Cancel</button>
+      <button class="btn pri" onclick="doExport()">⬇ Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="ntf" id="ntf"></div>
+
+<!-- HIDDEN COLOR PICKER -->
+<input type="color" id="color-picker" style="display:none;position:fixed;left:-999px">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo-pill">
+    <img src="data:image/jpeg;base64,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" alt="Cogniterra">
+  </div>
+  <div class="hdr-vline"></div>
+  <div class="hdr-name">
+    <div class="title">GeoVec <span style="color:var(--tx2);font-weight:400">Studio</span></div>
+    <div class="sub">Vector GIS Analysis Platform</div>
+  </div>
+  <div class="hdr-gap"></div>
+  <div class="hdr-btns">
+    <button class="btn" onclick="openExpModal()" title="Export active layer">⬇ Export</button>
+    <button class="btn" id="at-btn" onclick="toggleAttr()">📋 Attributes</button>
+    <button class="btn red" onclick="clearAll()">✕ Clear All</button>
+  </div>
+  <div class="creds">
+    <div class="name">Cogniterra Labs</div>
+    <div class="dev">Utkarsh Sharma &amp; Sayandip Das</div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="wsp">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sdb">
+    <div class="s-hdr">Upload Data</div>
+    <div class="s-body">
+      <div class="upz" id="upz" onclick="document.getElementById('fi').click()">
+        <div class="upz-ico">📂</div>
+        <p>Drop files or <strong>click to browse</strong></p>
+        <div class="fmt-row">
+          <span class="fmt-tag">SHP+ZIP</span>
+          <span class="fmt-tag">KML</span>
+          <span class="fmt-tag">KMZ</span>
+          <span class="fmt-tag">GeoJSON</span>
+          <span class="fmt-tag">GPX</span>
+          <span class="fmt-tag">CSV</span>
+        </div>
+      </div>
+      <input type="file" id="fi" multiple
+        accept=".shp,.dbf,.prj,.shx,.zip,.kml,.kmz,.geojson,.json,.gpx,.csv">
+    </div>
+
+    <div class="s-hdr">
+      Layers
+      <span class="lcnt" id="l-cnt">0</span>
+    </div>
+    <div class="lyr-scroll" id="lyr-list">
+      <div class="lyr-empty">No layers loaded.<br>Upload vector data to begin.</div>
+    </div>
+  </div>
+
+  <!-- MAP WRAPPER -->
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <!-- FLOATING TOOLBAR -->
+    <div class="ftb">
+      <button class="ftb-btn on" id="tb-pan" onclick="setTool('pan')" data-tip="Pan / Select">🖐</button>
+      <button class="ftb-btn" id="tb-id" onclick="setTool('identify')" data-tip="Identify Feature">🔍</button>
+      <div class="ftb-sep"></div>
+      <button class="ftb-btn" id="tb-pt" onclick="setTool('draw-pt')" data-tip="Draw Point">📍</button>
+      <button class="ftb-btn" id="tb-ln" onclick="setTool('draw-ln')" data-tip="Draw Line">✏️</button>
+      <button class="ftb-btn" id="tb-pg" onclick="setTool('draw-pg')" data-tip="Draw Polygon">⬡</button>
+      <div class="ftb-sep"></div>
+      <button class="ftb-btn" id="tb-md" onclick="setTool('meas-d')" data-tip="Measure Distance">📏</button>
+      <button class="ftb-btn" id="tb-ma" onclick="setTool('meas-a')" data-tip="Measure Area">◻</button>
+      <div class="ftb-sep"></div>
+      <button class="ftb-btn" onclick="zoomAll()" data-tip="Zoom to All">🏠</button>
+      <button class="ftb-btn" onclick="cancelTool()" data-tip="Cancel (Esc)">✕</button>
+    </div>
+
+    <!-- BASEMAP SELECTOR -->
+    <div class="bm-wrap">
+      <select id="bm-sel" onchange="changeBasemap(this.value)">
+        <option value="dark" selected>CartoDB Dark</option>
+        <option value="osm">OpenStreetMap</option>
+        <option value="sat">ESRI Satellite</option>
+        <option value="topo">OpenTopoMap</option>
+        <option value="esrilite">ESRI Streets</option>
+      </select>
+    </div>
+
+    <!-- MEASURE DISPLAY -->
+    <div class="meas-box" id="meas-box">Click to start · Double-click to finish</div>
+  </div>
+
+  <!-- RIGHT OPS PANEL -->
+  <div class="ops">
+    <!-- ACTIVE LAYER STATS -->
+    <div class="stats-blk">
+      <h3>Active Layer</h3>
+      <div class="stats-empty" id="stats-empty">Select a layer</div>
+      <div id="stats-body" style="display:none">
+        <div class="sc full" style="margin-bottom:4px">
+          <div class="lbl">Name</div><div class="val" id="st-name">—</div>
+        </div>
+        <div class="stat-grid">
+          <div class="sc"><div class="lbl">Features</div><div class="val" id="st-feat">—</div></div>
+          <div class="sc"><div class="lbl">Type</div><div class="val" id="st-type">—</div></div>
+          <div class="sc"><div class="lbl">Fields</div><div class="val" id="st-flds">—</div></div>
+          <div class="sc"><div class="lbl">CRS</div><div class="val">WGS 84</div></div>
+          <div class="sc full" id="st-measure" style="display:none">
+            <div class="lbl" id="st-m-lbl">Total</div>
+            <div class="val" id="st-m-val">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SINGLE LAYER OPS -->
+    <div class="ops-grp">
+      <h3>Single Layer</h3>
+      <button class="opb" onclick="openOp('buffer')">
+        <span class="ic">⭕</span><div><div class="nm">Buffer</div>
+        <div class="ds">Expand geometry by distance</div></div></button>
+      <button class="opb" onclick="openOp('centroid')">
+        <span class="ic">📍</span><div><div class="nm">Centroid</div>
+        <div class="ds">Center point per feature</div></div></button>
+      <button class="opb" onclick="openOp('convex')">
+        <span class="ic">🔷</span><div><div class="nm">Convex Hull</div>
+        <div class="ds">Smallest enclosing polygon</div></div></button>
+      <button class="opb" onclick="openOp('bbox')">
+        <span class="ic">⬜</span><div><div class="nm">Bounding Box</div>
+        <div class="ds">Extent envelope rectangle</div></div></button>
+      <button class="opb" onclick="openOp('simplify')">
+        <span class="ic">📐</span><div><div class="nm">Simplify</div>
+        <div class="ds">Reduce vertices (Douglas-Peucker)</div></div></button>
+      <button class="opb" onclick="openOp('dissolve')">
+        <span class="ic">🔗</span><div><div class="nm">Dissolve</div>
+        <div class="ds">Merge features into one</div></div></button>
+      <button class="opb" onclick="openOp('voronoi')">
+        <span class="ic">🕸</span><div><div class="nm">Voronoi Diagram</div>
+        <div class="ds">Thiessen polygons from points</div></div></button>
+      <button class="opb" onclick="openOp('tin')">
+        <span class="ic">△</span><div><div class="nm">TIN / Delaunay</div>
+        <div class="ds">Triangulation from points</div></div></button>
+      <button class="opb" onclick="openOp('envelope')">
+        <span class="ic">📦</span><div><div class="nm">Envelope per Feature</div>
+        <div class="ds">BBox for each feature individually</div></div></button>
+    </div>
+
+    <!-- TWO LAYER OPS -->
+    <div class="ops-grp">
+      <h3>Two Layer</h3>
+      <button class="opb" onclick="openOp('union')">
+        <span class="ic">🔵</span><div><div class="nm">Union</div>
+        <div class="ds">Merge two layers together</div></div></button>
+      <button class="opb" onclick="openOp('intersect')">
+        <span class="ic">🔴</span><div><div class="nm">Intersection</div>
+        <div class="ds">Common overlapping area</div></div></button>
+      <button class="opb" onclick="openOp('difference')">
+        <span class="ic">🟡</span><div><div class="nm">Difference</div>
+        <div class="ds">Subtract layer 2 from layer 1</div></div></button>
+      <button class="opb" onclick="openOp('clip')">
+        <span class="ic">✂️</span><div><div class="nm">Clip</div>
+        <div class="ds">Clip layer 1 by polygon mask</div></div></button>
+      <button class="opb" onclick="openOp('symdiff')">
+        <span class="ic">⬡</span><div><div class="nm">Sym. Difference</div>
+        <div class="ds">Areas not in both layers</div></div></button>
+    </div>
+
+    <!-- STATS OPS -->
+    <div class="ops-grp">
+      <h3>Measure &amp; Statistics</h3>
+      <button class="opb" onclick="openOp('calcarea')">
+        <span class="ic">📏</span><div><div class="nm">Calculate Area</div>
+        <div class="ds">Area per polygon feature</div></div></button>
+      <button class="opb" onclick="openOp('calclength')">
+        <span class="ic">📏</span><div><div class="nm">Calculate Length</div>
+        <div class="ds">Length per line feature</div></div></button>
+      <button class="opb" onclick="openOp('nearestdist')">
+        <span class="ic">↔</span><div><div class="nm">Nearest Distance</div>
+        <div class="ds">Min distance between layers</div></div></button>
+      <button class="opb" onclick="openOp('pointsinpoly')">
+        <span class="ic">🎯</span><div><div class="nm">Points in Polygon</div>
+        <div class="ds">Count points inside polygons</div></div></button>
+    </div>
+  </div>
+</div>
+
+<!-- ATTRIBUTE TABLE -->
+<div class="attr-panel" id="attr-panel">
+  <div class="attr-hdr">
+    <h3>📋 Attribute Table — <span id="at-lyr-name">none</span></h3>
+    <div class="right">
+      <span class="attr-meta" id="at-meta"></span>
+      <input class="attr-filter" id="at-filter" type="text"
+        placeholder="Filter…" oninput="filterAttr(this.value)">
+      <button class="btn" style="font-size:10px;padding:2px 7px"
+        onclick="exportAttrCSV()">⬇ CSV</button>
+      <button class="ib" onclick="toggleAttr()">✕</button>
+    </div>
+  </div>
+  <div class="attr-body" id="attr-body"></div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <span class="tool-tag" id="sb-tool">PAN</span>
+  <span class="sep">│</span>
+  <span id="sb-msg">Ready — upload data or use draw tools</span>
+  <span style="flex:1"></span>
+  <span class="crd" id="sb-coords">—</span>
+  <span class="sep">│</span>
+  <span id="sb-zoom">Zoom 5</span>
+  <span class="sep">│</span>
+  <span class="copy">© Cogniterra Labs · Utkarsh Sharma &amp; Sayandip Das</span>
+</div>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+const G = {
+  layers: [], active: null, map: null, op: null, ctr: 0,
+  tool: 'pan',
+  drawPts: [], drawPreviewLine: null, drawPreviewPoly: null, drawMarkers: [],
+  measPts: [], measPreviewLine: null, measPreviewPoly: null, measMarkers: [],
+  baseLayers: {}, currentBase: null,
+  attrData: [], attrHdrs: [], attrSortCol: -1, attrSortAsc: true,
+  colorPickerCb: null
+};
+
+const COLORS = [
+  '#00d4aa','#ff5a5a','#ffa040','#4a9eff','#c060ff',
+  '#40e080','#ff80c0','#00c8ff','#ffe040','#80ff80',
+  '#ff6040','#40c8ff','#ff40a0','#a0ff40','#6080ff'
+];
+
+const GTYPES = {
+  Point:'PT', MultiPoint:'MPT',
+  LineString:'LN', MultiLineString:'MLN',
+  Polygon:'PLY', MultiPolygon:'MPLY',
+  GeometryCollection:'GC', Mixed:'MIX'
+};
+
+/* ═══════════════════════════════════════════════════════════
+   MAP INITIALIZATION
+═══════════════════════════════════════════════════════════ */
+function initMap() {
+  G.map = L.map('map', {
+    center: [22, 80], zoom: 5,
+    zoomControl: false, doubleClickZoom: false
+  });
+
+  G.baseLayers = {
+    dark:    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+              {attribution:'© CartoDB'}),
+    osm:     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              {attribution:'© OpenStreetMap'}),
+    sat:     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              {attribution:'© Esri'}),
+    topo:    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+              {attribution:'© OpenTopoMap', maxZoom:17}),
+    esrilite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+              {attribution:'© Esri'})
+  };
+
+  G.baseLayers.dark.addTo(G.map);
+  G.currentBase = G.baseLayers.dark;
+
+  L.control.zoom({position:'topright'}).addTo(G.map);
+  L.control.scale({position:'bottomright',imperial:false}).addTo(G.map);
+
+  G.map.on('mousemove', e => {
+    const {lat, lng} = e.latlng;
+    document.getElementById('sb-coords').textContent =
+      `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  });
+  G.map.on('zoomend', () => {
+    document.getElementById('sb-zoom').textContent = `Zoom ${G.map.getZoom()}`;
+  });
+  G.map.on('click', onMapClick);
+  G.map.on('dblclick', onMapDblClick);
+  G.map.on('contextmenu', e => { if (G.tool !== 'pan') { L.DomEvent.stop(e); cancelTool(); } });
+}
+
+function changeBasemap(key) {
+  if (G.currentBase) G.map.removeLayer(G.currentBase);
+  G.baseLayers[key].addTo(G.map);
+  G.currentBase = G.baseLayers[key];
+  G.currentBase.bringToBack();
+  G.layers.forEach(l => { if (l.vis) l.ll.bringToFront(); });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOL SYSTEM
+═══════════════════════════════════════════════════════════ */
+const TOOL_IDS = {
+  pan:'tb-pan', identify:'tb-id',
+  'draw-pt':'tb-pt', 'draw-ln':'tb-ln', 'draw-pg':'tb-pg',
+  'meas-d':'tb-md', 'meas-a':'tb-ma'
+};
+
+function setTool(t) {
+  // Cancel any active drawing/measuring
+  if (['draw-ln','draw-pg'].includes(G.tool)) finishDraw(false);
+  if (G.tool.startsWith('meas-')) finishMeas(false);
+  clearDrawPreview(); clearMeasPreview();
+  G.drawPts = []; G.measPts = [];
+
+  G.tool = t;
+  const mc = G.map.getContainer();
+  mc.style.cursor = (t === 'pan') ? '' : 'crosshair';
+
+  // Update toolbar highlights
+  document.querySelectorAll('.ftb-btn').forEach(b => b.classList.remove('on'));
+  if (TOOL_IDS[t]) document.getElementById(TOOL_IDS[t])?.classList.add('on');
+
+  document.getElementById('sb-tool').textContent = t.toUpperCase().replace('-',' ');
+
+  if (t.startsWith('meas-')) {
+    showMeas('Click to place points · Double-click to finish · Right-click to cancel');
+  } else {
+    hideMeas();
+  }
+
+  if (t === 'draw-ln' || t === 'draw-pg') {
+    setStatus('Drawing — click to place vertices · Double-click to finish · Right-click to cancel');
+  } else if (t === 'draw-pt') {
+    setStatus('Click on map to place a point');
+  } else if (t === 'pan') {
+    setStatus('Ready');
+  }
+}
+
+function cancelTool() {
+  if (['draw-ln','draw-pg'].includes(G.tool)) finishDraw(false);
+  if (G.tool.startsWith('meas-')) finishMeas(false);
+  clearDrawPreview(); clearMeasPreview();
+  G.drawPts = []; G.measPts = [];
+  hideMeas();
+  setTool('pan');
+}
+
+function onMapClick(e) {
+  const lng = e.latlng.lng, lat = e.latlng.lat;
+  switch (G.tool) {
+    case 'identify':  identifyAt(e.latlng); break;
+    case 'draw-pt':   addDrawnPoint(lng, lat); break;
+    case 'draw-ln':
+    case 'draw-pg':
+      G.drawPts.push([lng, lat]);
+      placeDrawMarker(e.latlng);
+      updateDrawPreview();
+      setStatus(`${G.tool === 'draw-ln' ? 'Line' : 'Polygon'}: ${G.drawPts.length} pts · Dbl-click to finish`);
+      break;
+    case 'meas-d':
+    case 'meas-a':
+      G.measPts.push([lng, lat]);
+      placeMeasMarker(e.latlng);
+      updateMeasPreview();
+      break;
+  }
+}
+
+function onMapDblClick(e) {
+  L.DomEvent.stop(e);
+  if (G.tool === 'draw-ln' || G.tool === 'draw-pg') finishDraw(true);
+  else if (G.tool.startsWith('meas-')) finishMeas(true);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DRAW TOOLS
+═══════════════════════════════════════════════════════════ */
+function addDrawnPoint(lng, lat) {
+  const fc = {type:'FeatureCollection', features:[{
+    type:'Feature',
+    geometry:{type:'Point', coordinates:[lng, lat]},
+    properties:{name:`Point ${G.ctr+1}`, lon:lng.toFixed(6), lat:lat.toFixed(6)}
+  }]};
+  addLayer(`drawn_point_${G.ctr+1}`, fc);
+}
+
+function placeDrawMarker(ll) {
+  const m = L.circleMarker(ll, {radius:4,color:'#00d4aa',fillColor:'#00d4aa',
+    fillOpacity:1,weight:1.5}).addTo(G.map);
+  G.drawMarkers.push(m);
+}
+
+function placeMeasMarker(ll) {
+  const m = L.circleMarker(ll, {radius:4,color:'#ffb547',fillColor:'#ffb547',
+    fillOpacity:1,weight:1.5}).addTo(G.map);
+  G.measMarkers.push(m);
+}
+
+function updateDrawPreview() {
+  clearDrawPreview();
+  if (G.drawPts.length < 2) return;
+  const ll = G.drawPts.map(p => [p[1], p[0]]);
+  const style = {color:'#00d4aa', weight:2, dashArray:'6,4', opacity:.85};
+  if (G.tool === 'draw-ln') {
+    G.drawPreviewLine = L.polyline(ll, style).addTo(G.map);
+  } else if (G.tool === 'draw-pg') {
+    G.drawPreviewPoly = L.polygon(ll,
+      {...style, fillColor:'#00d4aa', fillOpacity:.08}).addTo(G.map);
+  }
+}
+
+function clearDrawPreview() {
+  if (G.drawPreviewLine)  { G.map.removeLayer(G.drawPreviewLine);  G.drawPreviewLine = null; }
+  if (G.drawPreviewPoly)  { G.map.removeLayer(G.drawPreviewPoly);  G.drawPreviewPoly = null; }
+  G.drawMarkers.forEach(m => G.map.removeLayer(m));
+  G.drawMarkers = [];
+}
+
+function finishDraw(commit) {
+  const pts = [...G.drawPts];
+  clearDrawPreview();
+  G.drawPts = [];
+  if (!commit || pts.length < 2) { if (commit) notify('Need at least 2 points','wn'); return; }
+
+  if (G.tool === 'draw-ln') {
+    if (pts.length < 2) { notify('Line needs ≥ 2 points','wn'); return; }
+    addLayer(`drawn_line_${G.ctr+1}`, {type:'FeatureCollection', features:[{
+      type:'Feature',
+      geometry:{type:'LineString', coordinates:pts},
+      properties:{name:`Line ${G.ctr+1}`, vertices:pts.length}
+    }]});
+  } else if (G.tool === 'draw-pg') {
+    if (pts.length < 3) { notify('Polygon needs ≥ 3 points','wn'); return; }
+    addLayer(`drawn_poly_${G.ctr+1}`, {type:'FeatureCollection', features:[{
+      type:'Feature',
+      geometry:{type:'Polygon', coordinates:[[...pts, pts[0]]]},
+      properties:{name:`Polygon ${G.ctr+1}`, vertices:pts.length}
+    }]});
+  }
+  setTool('pan');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MEASURE TOOLS
+═══════════════════════════════════════════════════════════ */
+function updateMeasPreview() {
+  clearMeasPreview();
+  if (G.measPts.length < 2) return;
+  const ll = G.measPts.map(p => [p[1], p[0]]);
+  const style = {color:'#ffb547', weight:2, dashArray:'4,4', opacity:.85};
+
+  if (G.tool === 'meas-d') {
+    G.measPreviewLine = L.polyline(ll, style).addTo(G.map);
+    try {
+      const d = turf.length(turf.lineString(G.measPts), {units:'kilometers'});
+      showMeas(`Distance: ${fmtDist(d)}`);
+    } catch(e) {}
+  } else if (G.tool === 'meas-a' && G.measPts.length >= 3) {
+    G.measPreviewPoly = L.polygon(ll,
+      {...style, fillColor:'#ffb547', fillOpacity:.08}).addTo(G.map);
+    try {
+      const a = turf.area(turf.polygon([[...G.measPts, G.measPts[0]]]));
+      showMeas(`Area: ${fmtArea(a)}`);
+    } catch(e) {}
+  }
+}
+
+function clearMeasPreview() {
+  if (G.measPreviewLine) { G.map.removeLayer(G.measPreviewLine); G.measPreviewLine = null; }
+  if (G.measPreviewPoly) { G.map.removeLayer(G.measPreviewPoly); G.measPreviewPoly = null; }
+  G.measMarkers.forEach(m => G.map.removeLayer(m));
+  G.measMarkers = [];
+}
+
+function finishMeas(showResult) {
+  const pts = [...G.measPts];
+  clearMeasPreview();
+  G.measPts = [];
+  hideMeas();
+  if (!showResult || pts.length < 2) return;
+  try {
+    if (G.tool === 'meas-d') {
+      const d = turf.length(turf.lineString(pts), {units:'kilometers'});
+      notify(`📏 Distance: ${fmtDist(d)}`, 'nfo');
+    } else if (G.tool === 'meas-a' && pts.length >= 3) {
+      const a = turf.area(turf.polygon([[...pts, pts[0]]]));
+      notify(`◻ Area: ${fmtArea(a)}`, 'nfo');
+    }
+  } catch(e) { notify('Measure failed: ' + e.message, 'er'); }
+  setTool('pan');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   IDENTIFY
+═══════════════════════════════════════════════════════════ */
+function identifyAt(latlng) {
+  let found = false;
+  const layers = [...G.layers].reverse();
+  for (const l of layers) {
+    if (!l.vis || found) continue;
+    l.ll.eachLayer(fl => {
+      if (found) return;
+      try {
+        const g = fl.feature?.geometry;
+        if (!g) return;
+        let hit = false;
+        if (g.type === 'Point' || g.type === 'MultiPoint') {
+          const sp = G.map.latLngToLayerPoint(latlng);
+          const fp = G.map.latLngToLayerPoint(
+            fl.getLatLng ? fl.getLatLng() : L.latLng(g.coordinates[1], g.coordinates[0])
+          );
+          hit = Math.hypot(sp.x - fp.x, sp.y - fp.y) < 14;
+        } else if (g.type.includes('Polygon')) {
+          hit = turf.booleanPointInPolygon(
+            turf.point([latlng.lng, latlng.lat]), fl.feature
+          );
+        } else if (g.type.includes('Line')) {
+          const near = turf.nearestPointOnLine(fl.feature,
+            turf.point([latlng.lng, latlng.lat]), {units:'meters'});
+          hit = near.properties.dist < (G.map.getZoom() < 10 ? 500 : 50);
+        }
+        if (hit) {
+          found = true;
+          const popup = buildPopupHTML(fl.feature?.properties);
+          if (fl.openPopup) fl.openPopup();
+          else fl.bindPopup(popup).openPopup(latlng);
+          setStatus(`Identified feature in "${l.name}"`);
+        }
+      } catch(e) {}
+    });
+    if (found) break;
+  }
+  if (!found) setStatus('No feature at click location');
+}
+
+function buildPopupHTML(props) {
+  if (!props) return '<em style="color:var(--tx2)">No attributes</em>';
+  const entries = Object.entries(props)
+    .filter(([k,v]) => v !== null && v !== undefined && v !== '');
+  if (!entries.length) return '<em style="color:var(--tx2)">No attributes</em>';
+  return entries.map(([k,v]) =>
+    `<b style="color:var(--ac)">${escHtml(String(k))}</b>: ${escHtml(String(v))}`
+  ).join('<br>');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — GeoJSON
+═══════════════════════════════════════════════════════════ */
+function parseGeoJSON(text) {
+  const j = JSON.parse(text);
+  if (j.type === 'FeatureCollection') {
+    j.features = (j.features || []).filter(f => f && f.geometry);
+    return j;
+  }
+  if (j.type === 'Feature') return {type:'FeatureCollection', features:[j]};
+  return {type:'FeatureCollection', features:[{type:'Feature', geometry:j, properties:{}}]};
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — KML
+═══════════════════════════════════════════════════════════ */
+function parseKML(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const features = [];
+
+  doc.querySelectorAll('Placemark').forEach(pm => {
+    const props = {};
+    const nameEl = pm.querySelector('name');
+    if (nameEl) props.name = nameEl.textContent.trim();
+    const descEl = pm.querySelector('description');
+    if (descEl) props.description = descEl.textContent.trim().substring(0, 500);
+    pm.querySelectorAll('SimpleData').forEach(sd => {
+      props[sd.getAttribute('name')] = sd.textContent;
+    });
+    pm.querySelectorAll('Data').forEach(d => {
+      const key = d.getAttribute('name');
+      const val = d.querySelector('value')?.textContent || '';
+      if (key) props[key] = val;
+    });
+
+    let geo = null;
+
+    // Point
+    const pc = pm.querySelector('Point > coordinates');
+    if (pc) {
+      const c = pc.textContent.trim().split(',').map(Number);
+      if (!isNaN(c[0]) && !isNaN(c[1]))
+        geo = {type:'Point', coordinates:[c[0], c[1]]};
+    }
+
+    // LineString
+    if (!geo) {
+      const lc = pm.querySelector('LineString > coordinates');
+      if (lc) { const cs = kmlCoords(lc.textContent); if (cs.length >= 2) geo = {type:'LineString', coordinates:cs}; }
+    }
+
+    // Polygon
+    if (!geo) {
+      const pl = pm.querySelector('Polygon');
+      if (pl) {
+        const rings = [];
+        const oc = pl.querySelector('outerBoundaryIs LinearRing coordinates')
+               || pl.querySelector('outerBoundaryIs coordinates');
+        if (oc) rings.push(kmlCoords(oc.textContent));
+        pl.querySelectorAll('innerBoundaryIs').forEach(ib => {
+          const ic = ib.querySelector('LinearRing coordinates') || ib.querySelector('coordinates');
+          if (ic) rings.push(kmlCoords(ic.textContent));
+        });
+        if (rings.length > 0 && rings[0].length >= 3) geo = {type:'Polygon', coordinates:rings};
+      }
+    }
+
+    // MultiGeometry
+    if (!geo) {
+      const mg = pm.querySelector('MultiGeometry');
+      if (mg) {
+        const geometries = [];
+        mg.querySelectorAll('Point > coordinates').forEach(c => {
+          const p = c.textContent.trim().split(',').map(Number);
+          if (!isNaN(p[0]) && !isNaN(p[1]))
+            geometries.push({type:'Point', coordinates:[p[0], p[1]]});
+        });
+        mg.querySelectorAll('LineString > coordinates').forEach(c => {
+          const cs = kmlCoords(c.textContent);
+          if (cs.length >= 2) geometries.push({type:'LineString', coordinates:cs});
+        });
+        if (geometries.length === 1) geo = geometries[0];
+        else if (geometries.length > 1) geo = {type:'GeometryCollection', geometries};
+      }
+    }
+
+    if (geo) features.push({type:'Feature', geometry:geo, properties:props});
+  });
+
+  return {type:'FeatureCollection', features};
+}
+
+function kmlCoords(txt) {
+  return txt.trim().split(/[\s\r\n]+/)
+    .map(c => { const p = c.split(',').map(Number); return [p[0], p[1]]; })
+    .filter(c => !isNaN(c[0]) && !isNaN(c[1]) && isFinite(c[0]) && isFinite(c[1]));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — GPX
+═══════════════════════════════════════════════════════════ */
+function parseGPX(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const features = [];
+
+  doc.querySelectorAll('wpt').forEach(w => {
+    const lat = +w.getAttribute('lat'), lon = +w.getAttribute('lon');
+    if (isNaN(lat) || isNaN(lon)) return;
+    const props = {name: w.querySelector('name')?.textContent?.trim() || ''};
+    const ele = w.querySelector('ele');
+    if (ele) props.elevation = +ele.textContent;
+    features.push({type:'Feature',
+      geometry:{type:'Point', coordinates:[lon, lat]}, properties:props});
+  });
+
+  doc.querySelectorAll('trk').forEach(t => {
+    const name = t.querySelector('name')?.textContent?.trim() || '';
+    t.querySelectorAll('trkseg').forEach((seg, si) => {
+      const coords = [];
+      seg.querySelectorAll('trkpt').forEach(p => {
+        const lat = +p.getAttribute('lat'), lon = +p.getAttribute('lon');
+        if (!isNaN(lat) && !isNaN(lon)) coords.push([lon, lat]);
+      });
+      if (coords.length >= 2)
+        features.push({type:'Feature',
+          geometry:{type:'LineString', coordinates:coords},
+          properties:{name: name || `Track ${si+1}`, points:coords.length}});
+    });
+  });
+
+  doc.querySelectorAll('rte').forEach(r => {
+    const name = r.querySelector('name')?.textContent?.trim() || '';
+    const coords = [];
+    r.querySelectorAll('rtept').forEach(p => {
+      const lat = +p.getAttribute('lat'), lon = +p.getAttribute('lon');
+      if (!isNaN(lat) && !isNaN(lon)) coords.push([lon, lat]);
+    });
+    if (coords.length >= 2)
+      features.push({type:'Feature',
+        geometry:{type:'LineString', coordinates:coords},
+        properties:{name: name || 'Route', points:coords.length}});
+  });
+
+  return {type:'FeatureCollection', features};
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — CSV
+═══════════════════════════════════════════════════════════ */
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+
+  const hdrs = splitCSVRow(lines[0]);
+  const latI  = hdrs.findIndex(h => /^lat(itude)?$/i.test(h.trim()));
+  const lonI  = hdrs.findIndex(h => /^lo?n(gitude)?$/i.test(h.trim()));
+
+  if (latI < 0 || lonI < 0) {
+    notify('CSV needs columns named lat/latitude and lon/longitude','er');
+    return null;
+  }
+
+  const features = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = splitCSVRow(lines[i]);
+    const lat = +vals[latI], lon = +vals[lonI];
+    if (isNaN(lat) || isNaN(lon) || !isFinite(lat) || !isFinite(lon)) continue;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    const props = {};
+    hdrs.forEach((h, j) => { props[h.trim()] = (vals[j] || '').trim(); });
+    features.push({type:'Feature',
+      geometry:{type:'Point', coordinates:[lon, lat]}, properties:props});
+  }
+  return {type:'FeatureCollection', features};
+}
+
+function splitCSVRow(row) {
+  const result = [], re = /("(?:[^"]|"")*"|[^,]*),?/g;
+  let m;
+  while ((m = re.exec(row)) !== null) {
+    if (m.index === re.lastIndex) { re.lastIndex++; break; }
+    let v = m[1];
+    if (v.startsWith('"') && v.endsWith('"'))
+      v = v.slice(1,-1).replace(/""/g,'"');
+    result.push(v);
+  }
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — SHP (binary)
+═══════════════════════════════════════════════════════════ */
+function ringSA(ring) {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    a += (ring[j][0] + ring[i][0]) * (ring[j][1] - ring[i][1]);
+  }
+  return a / 2;
+}
+
+function parseSHP(shpBuf, dbfBuf) {
+  const v = new DataView(shpBuf);
+
+  // Validate file code
+  if (v.byteLength < 100) throw new Error('SHP file too small');
+  const fileCode = v.getInt32(0, false); // big-endian
+  if (fileCode !== 9994) throw new Error(`Invalid SHP file code: ${fileCode}`);
+
+  const fileLen  = v.getInt32(24, false) * 2;  // big-endian, in 16-bit words
+  const shpType  = v.getInt32(32, true);        // little-endian
+
+  const dbfRecs  = (dbfBuf && dbfBuf.byteLength > 32) ? parseDBF(dbfBuf) : [];
+  const features = [];
+  let off = 100, recIdx = 0;
+
+  while (off + 8 <= v.byteLength && off < fileLen) {
+    // Record header (big-endian)
+    const recNum  = v.getInt32(off, false);
+    const contLen = v.getInt32(off + 4, false) * 2; // in bytes
+    off += 8;
+
+    if (contLen <= 0 || off + contLen > v.byteLength) break;
+
+    const ro = off; // record content offset
+    const st = v.getInt32(ro, true); // shape type (little-endian)
+
+    let geo = null;
+    try {
+      if (st === 0) {
+        // Null shape — skip
+      } else if (st === 1 || st === 11 || st === 21) {
+        // Point (and PointZ, PointM)
+        const x = v.getFloat64(ro + 4,  true);
+        const y = v.getFloat64(ro + 12, true);
+        if (isFinite(x) && isFinite(y))
+          geo = {type:'Point', coordinates:[x, y]};
+
+      } else if (st === 3 || st === 13 || st === 23) {
+        // Polyline / PolylineZ / PolylineM
+        const numParts  = v.getInt32(ro + 36, true);
+        const numPoints = v.getInt32(ro + 40, true);
+        if (numParts < 1 || numPoints < 2) { off += contLen; recIdx++; continue; }
+        const partsOff = ro + 44;
+        const ptsOff   = partsOff + numParts * 4;
+        const parts = Array.from({length: numParts},
+          (_, i) => v.getInt32(partsOff + i * 4, true));
+        const points = Array.from({length: numPoints},
+          (_, i) => [v.getFloat64(ptsOff + i*16, true), v.getFloat64(ptsOff + i*16+8, true)]);
+        const lines = parts.map((s, i) =>
+          points.slice(s, i < parts.length - 1 ? parts[i+1] : numPoints)
+            .filter(p => isFinite(p[0]) && isFinite(p[1]))
+        ).filter(l => l.length >= 2);
+        if (lines.length === 0) { off += contLen; recIdx++; continue; }
+        geo = lines.length === 1
+          ? {type:'LineString', coordinates:lines[0]}
+          : {type:'MultiLineString', coordinates:lines};
+
+      } else if (st === 5 || st === 15 || st === 25) {
+        // Polygon / PolygonZ / PolygonM
+        const numParts  = v.getInt32(ro + 36, true);
+        const numPoints = v.getInt32(ro + 40, true);
+        if (numParts < 1 || numPoints < 3) { off += contLen; recIdx++; continue; }
+        const partsOff = ro + 44;
+        const ptsOff   = partsOff + numParts * 4;
+        const parts = Array.from({length: numParts},
+          (_, i) => v.getInt32(partsOff + i * 4, true));
+        const points = Array.from({length: numPoints},
+          (_, i) => [v.getFloat64(ptsOff + i*16, true), v.getFloat64(ptsOff + i*16+8, true)]);
+        const rings = parts.map((s, i) =>
+          points.slice(s, i < parts.length - 1 ? parts[i+1] : numPoints)
+            .filter(p => isFinite(p[0]) && isFinite(p[1]))
+        ).filter(r => r.length >= 3);
+        if (rings.length === 0) { off += contLen; recIdx++; continue; }
+
+        // Build polygons: ringSA < 0 = CW (ESRI outer ring), ringSA > 0 = CCW (hole)
+        const polys = [];
+        let cur = null;
+        for (const ring of rings) {
+          if (ringSA(ring) < 0) {
+            // Outer ring — close it
+            if (cur) polys.push(cur);
+            const closed = [...ring];
+            if (closed[0][0] !== closed[closed.length-1][0] ||
+                closed[0][1] !== closed[closed.length-1][1])
+              closed.push(closed[0]);
+            cur = [closed];
+          } else {
+            // Hole
+            if (!cur) cur = [ring]; // orphan hole — treat as outer
+            else {
+              const closed = [...ring];
+              if (closed[0][0] !== closed[closed.length-1][0] ||
+                  closed[0][1] !== closed[closed.length-1][1])
+                closed.push(closed[0]);
+              cur.push(closed);
+            }
+          }
+        }
+        if (cur) polys.push(cur);
+
+        if (polys.length === 0) {
+          // Fallback: close all rings and treat first as outer
+          const closedRings = rings.map(r => {
+            const c = [...r];
+            if (c[0][0] !== c[c.length-1][0] || c[0][1] !== c[c.length-1][1]) c.push(c[0]);
+            return c;
+          });
+          geo = {type:'Polygon', coordinates:closedRings};
+        } else if (polys.length === 1) {
+          geo = {type:'Polygon', coordinates:polys[0]};
+        } else {
+          geo = {type:'MultiPolygon', coordinates:polys};
+        }
+
+      } else if (st === 8 || st === 18 || st === 28) {
+        // MultiPoint / MultiPointZ / MultiPointM
+        const numPoints = v.getInt32(ro + 36, true);
+        if (numPoints < 1) { off += contLen; recIdx++; continue; }
+        const ptsOff = ro + 40;
+        const points = Array.from({length: numPoints},
+          (_, i) => [v.getFloat64(ptsOff + i*16, true), v.getFloat64(ptsOff + i*16+8, true)])
+          .filter(p => isFinite(p[0]) && isFinite(p[1]));
+        if (points.length) geo = {type:'MultiPoint', coordinates:points};
+      }
+    } catch(e) {
+      console.warn(`SHP record ${recIdx} parse error:`, e.message);
+    }
+
+    if (geo) {
+      const props = dbfRecs[recIdx] ? {...dbfRecs[recIdx]} : {};
+      features.push({type:'Feature', geometry:geo, properties:props});
+    }
+    recIdx++;
+    off += contLen;
+  }
+
+  return {type:'FeatureCollection', features};
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSERS — DBF (binary)
+═══════════════════════════════════════════════════════════ */
+function parseDBF(buf) {
+  if (!buf || buf.byteLength < 32) return [];
+  const v = new DataView(buf);
+
+  const nRec    = v.getInt32(4,  true);
+  const hdrSize = v.getInt16(8,  true);
+  const recSize = v.getInt16(10, true);
+
+  if (nRec < 0 || nRec > 2000000 || hdrSize < 32 || recSize < 1) return [];
+
+  const fields = [];
+  let fo = 32;
+  while (fo + 32 <= hdrSize) {
+    if (v.getUint8(fo) === 0x0D || v.getUint8(fo) === 0x1A) break;
+    // Read field name (first 11 bytes, null-terminated)
+    const namBytes = [];
+    for (let i = 0; i < 11; i++) {
+      const b = v.getUint8(fo + i);
+      if (b === 0) break;
+      namBytes.push(b);
+    }
+    const name  = String.fromCharCode(...namBytes).trim();
+    const ftype = String.fromCharCode(v.getUint8(fo + 11));
+    const flen  = v.getUint8(fo + 16);
+    const fdec  = v.getUint8(fo + 17);
+    if (name && flen > 0 && flen < 255) fields.push({name, ftype, flen, fdec});
+    fo += 32;
+  }
+
+  const records = [];
+  let ro = hdrSize;
+
+  for (let r = 0; r < nRec; r++) {
+    if (ro + recSize > buf.byteLength) break;
+    const flag = v.getUint8(ro);
+    ro++;
+    const props = {};
+
+    for (const f of fields) {
+      if (ro + f.flen > buf.byteLength) break;
+      const bytes = new Uint8Array(buf, ro, f.flen);
+      let raw = '';
+      for (const b of bytes) {
+        if (b === 0) break;
+        if (b >= 32) raw += String.fromCharCode(b);
+      }
+      raw = raw.trim();
+
+      if (flag !== 0x2A) { // Not deleted
+        if (f.ftype === 'N' || f.ftype === 'F') {
+          props[f.name] = (raw === '' || raw === '*') ? null : parseFloat(raw);
+        } else if (f.ftype === 'L') {
+          props[f.name] = ['T','Y','t','y'].includes(raw) ? true :
+                          ['F','N','f','n'].includes(raw) ? false : null;
+        } else if (f.ftype === 'D') {
+          props[f.name] = raw.length === 8
+            ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`
+            : raw;
+        } else {
+          props[f.name] = raw;
+        }
+      }
+      ro += f.flen;
+    }
+    records.push(props);
+  }
+  return records;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FILE HANDLING
+═══════════════════════════════════════════════════════════ */
+async function handleFiles(files) {
+  if (!files || !files.length) return;
+  showLdg('Reading files…');
+
+  const arr  = Array.from(files);
+  const fmap = {};
+  arr.forEach(f => { fmap[f.name.toLowerCase()] = f; });
+  const done = new Set();
+
+  for (const f of arr) {
+    const key = f.name.toLowerCase();
+    if (done.has(key)) continue;
+    done.add(key);
+
+    const ext  = key.split('.').pop();
+    const base = f.name.replace(/\.[^.]+$/, '');
+
+    try {
+      if (ext === 'zip') {
+        await handleZip(f, base);
+      } else if (ext === 'shp') {
+        const dbfKey = `${base.toLowerCase()}.dbf`;
+        const dbfFile = fmap[dbfKey];
+        if (dbfFile) done.add(dbfKey);
+        showLdg(`Parsing ${f.name}…`);
+        const [shpBuf, dbfBuf] = await Promise.all([
+          f.arrayBuffer(),
+          dbfFile ? dbfFile.arrayBuffer() : Promise.resolve(null)
+        ]);
+        addLayer(base, parseSHP(shpBuf, dbfBuf));
+      } else if (ext === 'kml') {
+        showLdg(`Parsing ${f.name}…`);
+        addLayer(base, parseKML(await f.text()));
+      } else if (ext === 'kmz') {
+        showLdg(`Parsing ${f.name}…`);
+        await handleKMZ(f, base);
+      } else if (ext === 'geojson' || ext === 'json') {
+        showLdg(`Parsing ${f.name}…`);
+        addLayer(base, parseGeoJSON(await f.text()));
+      } else if (ext === 'gpx') {
+        showLdg(`Parsing ${f.name}…`);
+        addLayer(base, parseGPX(await f.text()));
+      } else if (ext === 'csv') {
+        showLdg(`Parsing ${f.name}…`);
+        const fc = parseCSV(await f.text());
+        if (fc) addLayer(base, fc);
+      } else if (!['dbf','shx','prj','cpg','sbn','sbx','fbn','fbx'].includes(ext)) {
+        notify(`Unsupported format: .${ext}`, 'wn');
+      }
+    } catch(e) {
+      notify(`Error reading ${f.name}: ${e.message}`, 'er');
+      console.error(e);
+    }
+  }
+  hideLdg();
+}
+
+async function handleZip(file, name) {
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(await file.arrayBuffer());
+  } catch(e) {
+    throw new Error('Cannot read ZIP: ' + e.message);
+  }
+
+  const keys = Object.keys(zip.files);
+
+  // SHP files inside ZIP
+  const shpKeys = keys.filter(k => k.toLowerCase().endsWith('.shp') && !zip.files[k].dir);
+  for (const shpKey of shpKeys) {
+    const b  = shpKey.replace(/\.shp$/i, '');
+    const dbfKey = keys.find(k =>
+      k.toLowerCase() === (b + '.dbf').toLowerCase() ||
+      k.toLowerCase() === (b.split('/').pop() + '.dbf').toLowerCase()
+    );
+    showLdg(`Parsing ${shpKey}…`);
+    const shpBuf = await zip.files[shpKey].async('arraybuffer');
+    const dbfBuf = dbfKey ? await zip.files[dbfKey].async('arraybuffer') : null;
+    const layerName = shpKey.split('/').pop().replace(/\.shp$/i, '');
+    addLayer(layerName, parseSHP(shpBuf, dbfBuf));
+  }
+
+  // KML files inside ZIP
+  const kmlKeys = keys.filter(k => k.toLowerCase().endsWith('.kml') && !zip.files[k].dir);
+  for (const kmlKey of kmlKeys) {
+    showLdg(`Parsing ${kmlKey}…`);
+    const layerName = kmlKey.split('/').pop().replace(/\.kml$/i, '');
+    addLayer(layerName, parseKML(await zip.files[kmlKey].async('text')));
+  }
+
+  // GeoJSON inside ZIP
+  const gjKeys = keys.filter(k =>
+    (k.toLowerCase().endsWith('.geojson') || k.toLowerCase().endsWith('.json')) &&
+    !zip.files[k].dir
+  );
+  for (const gjKey of gjKeys) {
+    try {
+      showLdg(`Parsing ${gjKey}…`);
+      const layerName = gjKey.split('/').pop().replace(/\.(geojson|json)$/i, '');
+      addLayer(layerName, parseGeoJSON(await zip.files[gjKey].async('text')));
+    } catch(e) {}
+  }
+}
+
+async function handleKMZ(file, name) {
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(await file.arrayBuffer());
+  } catch(e) {
+    throw new Error('Cannot read KMZ: ' + e.message);
+  }
+  const keys  = Object.keys(zip.files);
+  const kmlKey = keys.find(k => k.toLowerCase().endsWith('.kml') && !zip.files[k].dir);
+  if (kmlKey) {
+    addLayer(name, parseKML(await zip.files[kmlKey].async('text')));
+  } else {
+    notify('No KML found inside KMZ', 'wn');
+  }
+}
+/* ═══════════════════════════════════════════════════════════
+   LAYER MANAGEMENT
+═══════════════════════════════════════════════════════════ */
+function detectGeomType(fc) {
+  if (!fc.features || !fc.features.length) return 'Empty';
+  const types = new Set(
+    fc.features.map(f => f.geometry?.type).filter(Boolean)
+  );
+  if (types.size === 1) return [...types][0];
+  return 'Mixed';
+}
+
+function makeStyle(color, type) {
+  if (type.includes('Polygon'))
+    return {color, weight:1.5, opacity:.9, fillColor:color, fillOpacity:.22};
+  if (type.includes('Line'))
+    return {color, weight:2.5, opacity:.9};
+  return {};
+}
+
+function addLayer(name, fc) {
+  if (!fc || !fc.features) { notify(`${name}: empty result`, 'er'); return; }
+  fc.features = fc.features.filter(f =>
+    f && f.geometry && f.geometry.type && f.geometry.coordinates
+  );
+  if (!fc.features.length) { notify(`${name}: no valid features`, 'er'); return; }
+
+  const id    = ++G.ctr;
+  const color = COLORS[(id - 1) % COLORS.length];
+  const type  = detectGeomType(fc);
+
+  const ll = L.geoJSON(fc, {
+    style: () => makeStyle(color, type),
+    pointToLayer: (feat, latlng) =>
+      L.circleMarker(latlng, {
+        radius:6, fillColor:color, color:'rgba(255,255,255,.7)',
+        weight:1.5, fillOpacity:.9
+      }),
+    onEachFeature: (feat, layer) => {
+      if (feat.properties && Object.keys(feat.properties).length) {
+        const html = buildPopupHTML(feat.properties);
+        layer.bindPopup(html, {maxHeight:220, maxWidth:280});
+      }
+    }
+  }).addTo(G.map);
+
+  G.layers.push({id, name, type, color, fc, ll, vis:true, opacity:1});
+
+  try {
+    const b = ll.getBounds();
+    if (b.isValid()) G.map.fitBounds(b, {padding:[22,22], maxZoom:18});
+  } catch(e) {}
+
+  setActive(id);
+  renderLayerList();
+  notify(`✓ "${name}" — ${fc.features.length} features (${type})`, 'ok');
+}
+
+function removeLayer(id) {
+  const idx = G.layers.findIndex(l => l.id === id);
+  if (idx < 0) return;
+  G.map.removeLayer(G.layers[idx].ll);
+  G.layers.splice(idx, 1);
+  if (G.active === id)
+    G.active = G.layers.length ? G.layers[G.layers.length - 1].id : null;
+  renderLayerList();
+  updateStats();
+  renderAttr();
+}
+
+function toggleVis(id, e) {
+  e && e.stopPropagation();
+  const l = G.layers.find(l => l.id === id);
+  if (!l) return;
+  l.vis = !l.vis;
+  l.vis ? l.ll.addTo(G.map) : G.map.removeLayer(l.ll);
+  renderLayerList();
+}
+
+function setOpacity(id, val) {
+  const l = G.layers.find(l => l.id === id);
+  if (!l) return;
+  l.opacity = +val;
+  l.ll.eachLayer(fl => {
+    if (fl.setStyle) {
+      const s = makeStyle(l.color, l.type);
+      fl.setStyle({
+        opacity: l.opacity,
+        fillOpacity: l.type.includes('Polygon') ? l.opacity * 0.22 : l.opacity
+      });
+    }
+    if (fl.setOpacity) fl.setOpacity(l.opacity);
+  });
+  const el = document.getElementById(`ov-${id}`);
+  if (el) el.textContent = Math.round(l.opacity * 100) + '%';
+}
+
+function zoomToLayer(id, e) {
+  e && e.stopPropagation();
+  const l = G.layers.find(l => l.id === id);
+  if (!l) return;
+  try {
+    const b = l.ll.getBounds();
+    if (b.isValid()) G.map.fitBounds(b, {padding:[22,22]});
+  } catch(e) {}
+}
+
+function zoomAll() {
+  if (!G.layers.length) return;
+  let bounds = null;
+  G.layers.filter(l => l.vis).forEach(l => {
+    try {
+      const b = l.ll.getBounds();
+      if (b.isValid()) bounds = bounds ? bounds.extend(b) : b;
+    } catch(e) {}
+  });
+  if (bounds) G.map.fitBounds(bounds, {padding:[22,22]});
+}
+
+function setActive(id) {
+  G.active = id;
+  renderLayerList();
+  updateStats();
+  renderAttr();
+}
+
+function changeColor(id, e) {
+  e && e.stopPropagation();
+  const l = G.layers.find(l => l.id === id);
+  if (!l) return;
+  const cp = document.getElementById('color-picker');
+  cp.value = l.color;
+  G.colorPickerCb = (newColor) => {
+    l.color = newColor;
+    l.ll.eachLayer(fl => {
+      if (fl.setStyle) fl.setStyle(makeStyle(newColor, l.type));
+      if (fl.setStyle && fl.options && fl.options.radius !== undefined)
+        fl.setStyle({fillColor: newColor});
+    });
+    renderLayerList();
+  };
+  cp.onchange = () => G.colorPickerCb && G.colorPickerCb(cp.value);
+  cp.oninput  = () => G.colorPickerCb && G.colorPickerCb(cp.value);
+  cp.click();
+}
+
+function renderLayerList() {
+  const el = document.getElementById('lyr-list');
+  document.getElementById('l-cnt').textContent = G.layers.length;
+
+  if (!G.layers.length) {
+    el.innerHTML = '<div class="lyr-empty">No layers loaded.<br>Upload vector data to begin.</div>';
+    return;
+  }
+
+  el.innerHTML = [...G.layers].reverse().map(l => {
+    const isAct = G.active === l.id;
+    const badge = GTYPES[l.type] || l.type.substring(0,4);
+    return `
+<div class="lyr-item ${isAct ? 'act' : ''} ${!l.vis ? 'lyr-hidden' : ''}"
+     onclick="setActive(${l.id})">
+  <div class="lyr-dot" style="background:${l.color}"
+       onclick="changeColor(${l.id},event)" title="Change colour"></div>
+  <div class="lyr-info">
+    <div class="lyr-name" title="${escHtml(l.name)}">${escHtml(l.name)}</div>
+    <div class="lyr-meta">
+      <span class="lyr-badge">${badge}</span>
+      <span class="lyr-cnt">${l.fc.features.length} feat</span>
+    </div>
+  </div>
+  <div class="lyr-acts">
+    <button class="ib" onclick="toggleVis(${l.id},event)"
+      title="${l.vis?'Hide':'Show'}">${l.vis ? '👁' : '🚫'}</button>
+    <button class="ib" onclick="zoomToLayer(${l.id},event)" title="Zoom to">🔍</button>
+    <button class="ib del" onclick="event.stopPropagation();removeLayer(${l.id})"
+      title="Remove">✕</button>
+  </div>
+</div>
+<div class="opa-row" style="${isAct ? 'display:flex' : 'display:none'}">
+  <label>Opacity</label>
+  <input type="range" min="0.05" max="1" step="0.05" value="${l.opacity}"
+    oninput="setOpacity(${l.id},this.value)">
+  <span class="opa-val" id="ov-${l.id}">${Math.round(l.opacity*100)}%</span>
+</div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const l = G.layers.find(l => l.id === G.active);
+  const empty = document.getElementById('stats-empty');
+  const body  = document.getElementById('stats-body');
+
+  if (!l) {
+    empty.style.display = '';
+    body.style.display  = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  body.style.display  = '';
+
+  document.getElementById('st-name').textContent = l.name;
+  document.getElementById('st-feat').textContent = l.fc.features.length;
+  document.getElementById('st-type').textContent = GTYPES[l.type] || l.type;
+  document.getElementById('st-flds').textContent =
+    Object.keys(l.fc.features[0]?.properties || {}).length;
+
+  const mEl  = document.getElementById('st-measure');
+  const mLbl = document.getElementById('st-m-lbl');
+  const mVal = document.getElementById('st-m-val');
+  try {
+    if (l.type.includes('Polygon') || l.type === 'Mixed') {
+      const tot = l.fc.features.reduce((s, f) => {
+        try { return s + turf.area(f); } catch(e) { return s; }
+      }, 0);
+      mEl.style.display = '';
+      mLbl.textContent  = 'Total Area';
+      mVal.textContent  = fmtArea(tot);
+    } else if (l.type.includes('Line')) {
+      const tot = l.fc.features.reduce((s, f) => {
+        try { return s + turf.length(f, {units:'kilometers'}); } catch(e) { return s; }
+      }, 0);
+      mEl.style.display = '';
+      mLbl.textContent  = 'Total Length';
+      mVal.textContent  = fmtDist(tot);
+    } else {
+      mEl.style.display = 'none';
+    }
+  } catch(e) {
+    mEl.style.display = 'none';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ATTRIBUTE TABLE
+═══════════════════════════════════════════════════════════ */
+function renderAttr() {
+  const l = G.layers.find(l => l.id === G.active);
+  document.getElementById('at-lyr-name').textContent = l ? l.name : 'none';
+  const body = document.getElementById('attr-body');
+
+  if (!l || !l.fc.features.length) {
+    body.innerHTML = '<div class="attr-no-data">No data to display</div>';
+    document.getElementById('at-meta').textContent = '';
+    return;
+  }
+
+  const hdrs = Object.keys(l.fc.features[0]?.properties || {});
+  document.getElementById('at-meta').textContent =
+    `${l.fc.features.length} features · ${hdrs.length} fields`;
+
+  G.attrData = l.fc.features;
+  G.attrHdrs = hdrs;
+  G.attrSortCol = -1;
+  G.attrSortAsc = true;
+  document.getElementById('at-filter').value = '';
+  drawAttrTable(l.fc.features, hdrs);
+}
+
+function drawAttrTable(features, hdrs) {
+  const body = document.getElementById('attr-body');
+  if (!hdrs.length) {
+    body.innerHTML = '<div class="attr-no-data">No attribute fields</div>';
+    return;
+  }
+  const rows = features.slice(0, 1000);
+  const more = features.length > 1000
+    ? `<tr><td colspan="${hdrs.length+1}"
+        style="text-align:center;padding:7px;color:var(--tx3)">
+        … ${features.length - 1000} more rows (showing first 1000)</td></tr>` : '';
+
+  body.innerHTML = `
+<table>
+  <thead><tr>
+    <th onclick="sortAttr(-1)">#</th>
+    ${hdrs.map((h,i) => `<th onclick="sortAttr(${i})"
+      class="${G.attrSortCol===i ? (G.attrSortAsc?'sort-asc':'sort-desc') : ''}"
+      >${escHtml(h)}</th>`).join('')}
+  </tr></thead>
+  <tbody>
+    ${rows.map((f,ri) => `
+    <tr>
+      <td>${ri+1}</td>
+      ${hdrs.map(h => {
+        const v = f.properties?.[h];
+        const s = v === null || v === undefined ? '' : String(v);
+        return `<td title="${escHtml(s)}">${escHtml(s.substring(0,100))}</td>`;
+      }).join('')}
+    </tr>`).join('')}
+    ${more}
+  </tbody>
+</table>`;
+}
+
+function sortAttr(colIdx) {
+  if (!G.attrData.length) return;
+  if (G.attrSortCol === colIdx) G.attrSortAsc = !G.attrSortAsc;
+  else { G.attrSortCol = colIdx; G.attrSortAsc = true; }
+
+  const sorted = [...G.attrData].sort((a, b) => {
+    if (colIdx < 0) return 0;
+    const key = G.attrHdrs[colIdx];
+    const va = a.properties?.[key] ?? '';
+    const vb = b.properties?.[key] ?? '';
+    const na = parseFloat(va), nb = parseFloat(vb);
+    let cmp = (!isNaN(na) && !isNaN(nb)) ? na - nb : String(va).localeCompare(String(vb));
+    return G.attrSortAsc ? cmp : -cmp;
+  });
+  drawAttrTable(sorted, G.attrHdrs);
+}
+
+function filterAttr(query) {
+  if (!G.attrData.length) return;
+  const q = query.toLowerCase().trim();
+  const filtered = q
+    ? G.attrData.filter(f =>
+        Object.values(f.properties || {}).some(v =>
+          String(v ?? '').toLowerCase().includes(q)))
+    : G.attrData;
+  drawAttrTable(filtered, G.attrHdrs);
+  document.getElementById('at-meta').textContent =
+    `${filtered.length} / ${G.attrData.length} features · ${G.attrHdrs.length} fields`;
+}
+
+function toggleAttr() {
+  const p = document.getElementById('attr-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderAttr();
+}
+
+function exportAttrCSV() {
+  const l = G.layers.find(l => l.id === G.active);
+  if (!l) { notify('No active layer', 'wn'); return; }
+  const hdrs = Object.keys(l.fc.features[0]?.properties || {});
+  const rows = [hdrs.join(',')];
+  l.fc.features.forEach(f => {
+    rows.push(hdrs.map(h => {
+      const v = String(f.properties?.[h] ?? '');
+      return v.includes(',') || v.includes('"') || v.includes('\n')
+        ? `"${v.replace(/"/g,'""')}"` : v;
+    }).join(','));
+  });
+  dlBlob(new Blob([rows.join('\n')], {type:'text/csv'}), `${l.name}_attributes.csv`);
+  notify(`Exported ${l.name}_attributes.csv`, 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VECTOR OPERATIONS — MODAL
+═══════════════════════════════════════════════════════════ */
+const OP_DEFS = {
+  buffer:     { title:'Buffer',            icon:'⭕' },
+  centroid:   { title:'Centroid',          icon:'📍' },
+  convex:     { title:'Convex Hull',       icon:'🔷' },
+  bbox:       { title:'Bounding Box',      icon:'⬜' },
+  simplify:   { title:'Simplify',          icon:'📐' },
+  dissolve:   { title:'Dissolve',          icon:'🔗' },
+  voronoi:    { title:'Voronoi Diagram',   icon:'🕸' },
+  tin:        { title:'TIN Triangulation', icon:'△' },
+  envelope:   { title:'Envelope per Feature','icon':'📦' },
+  union:      { title:'Union',             icon:'🔵' },
+  intersect:  { title:'Intersection',      icon:'🔴' },
+  difference: { title:'Difference',        icon:'🟡' },
+  clip:       { title:'Clip',              icon:'✂️' },
+  symdiff:    { title:'Symmetric Difference','icon':'⬡' },
+  calcarea:   { title:'Calculate Area',    icon:'📏' },
+  calclength: { title:'Calculate Length',  icon:'📏' },
+  nearestdist:{ title:'Nearest Distance',  icon:'↔' },
+  pointsinpoly:{ title:'Points in Polygon',icon:'🎯' }
+};
+
+function lyrSel(n, label) {
+  const lbl = label || (n === 1 ? 'Layer' : 'Layer 2');
+  const opts = G.layers.map(l =>
+    `<option value="${l.id}" ${l.id === G.active && n === 1 ? 'selected' : ''}>`+
+    `${escHtml(l.name)} (${GTYPES[l.type]||l.type})</option>`
+  ).join('');
+  return `<div class="frow"><label>${lbl}</label><select id="op-l${n}">${opts}</select></div>`;
+}
+
+function numInput(id, label, val, step, hint) {
+  return `<div class="frow"><label>${label}</label>
+    <input type="number" id="${id}" value="${val}" step="${step||'any'}" min="0">
+    ${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+}
+
+function unitSel() {
+  return `<div class="frow"><label>Units</label>
+    <select id="op-units">
+      <option value="kilometers">Kilometers</option>
+      <option value="meters">Meters</option>
+      <option value="miles">Miles</option>
+      <option value="degrees">Degrees</option>
+    </select></div>`;
+}
+
+function buildOpForm(op) {
+  switch(op) {
+    case 'buffer':
+      return lyrSel(1) + numInput('op-dist','Distance','1','any',
+        'Distance to expand the geometry') + unitSel();
+    case 'simplify':
+      return lyrSel(1) + numInput('op-tol','Tolerance (degrees)','0.001','0.0001',
+        'Higher = more simplification. Use 0.001–0.01 for geographic data');
+    case 'union': case 'intersect': case 'difference': case 'clip': case 'symdiff':
+      return lyrSel(1, op === 'clip' ? 'Input Layer' : 'Layer 1') +
+             lyrSel(2, op === 'clip' ? 'Clip Mask (must be polygon)' :
+                       op === 'difference' ? 'Layer to subtract' : 'Layer 2');
+    case 'nearestdist': case 'pointsinpoly':
+      return lyrSel(1, op === 'pointsinpoly' ? 'Points layer' : 'From layer') +
+             lyrSel(2, op === 'pointsinpoly' ? 'Polygon layer' : 'To layer');
+    default:
+      return lyrSel(1);
+  }
+}
+
+function openOp(name) {
+  if (!G.layers.length) { notify('Upload a layer first', 'wn'); return; }
+  G.op = name;
+  const def = OP_DEFS[name];
+  document.getElementById('op-title').innerHTML = `${def.icon} ${def.title}`;
+  document.getElementById('op-body').innerHTML  = buildOpForm(name);
+  // Set layer 2 default to a different layer
+  const sel2 = document.getElementById('op-l2');
+  if (sel2) {
+    const other = G.layers.find(l => l.id !== G.active);
+    if (other) sel2.value = other.id;
+  }
+  document.getElementById('op-modal').classList.add('vis');
+}
+
+function closeOpModal() {
+  document.getElementById('op-modal').classList.remove('vis');
+  G.op = null;
+}
+
+function getLayer(n) {
+  const el = document.getElementById(`op-l${n}`);
+  return el ? G.layers.find(l => l.id === +el.value) : null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VECTOR OPERATIONS — EXECUTION
+═══════════════════════════════════════════════════════════ */
+function execOp() {
+  const op = G.op;
+  if (!op) return;
+  const l1 = getLayer(1);
+  const l2 = getLayer(2);
+  if (!l1) { notify('Select a layer', 'er'); return; }
+
+  closeOpModal();
+  showLdg(`Running ${OP_DEFS[op].title}…`);
+
+  // Defer to allow spinner to render
+  setTimeout(() => {
+    try {
+      let result = null, rname = `${op}_result`;
+
+      switch(op) {
+
+        case 'buffer': {
+          const d = +document.getElementById('op-dist').value;
+          const u = document.getElementById('op-units').value;
+          if (d <= 0) { notify('Distance must be > 0', 'er'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f => {
+            try {
+              const b = turf.buffer(f, d, {units: u});
+              if (b) feats.push(b);
+            } catch(e) { console.warn('buffer fail:', e.message); }
+          });
+          if (!feats.length) { notify('Buffer produced no results', 'er'); hideLdg(); return; }
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_buf${d}${u.charAt(0)}`;
+          break;
+        }
+
+        case 'centroid': {
+          const feats = [];
+          l1.fc.features.forEach(f => {
+            try {
+              const c = turf.centroid(f, {properties: {...f.properties}});
+              if (c) feats.push(c);
+            } catch(e) {}
+          });
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_centroids`;
+          break;
+        }
+
+        case 'convex': {
+          try {
+            const h = turf.convex(l1.fc);
+            result  = h ? turf.featureCollection([h]) : null;
+          } catch(e) { notify('Convex Hull failed: ' + e.message, 'er'); hideLdg(); return; }
+          rname = `${l1.name}_convex`;
+          break;
+        }
+
+        case 'bbox': {
+          try {
+            const b = turf.bbox(l1.fc);
+            result  = turf.featureCollection([turf.bboxPolygon(b)]);
+          } catch(e) { notify('BBox failed: ' + e.message, 'er'); hideLdg(); return; }
+          rname = `${l1.name}_bbox`;
+          break;
+        }
+
+        case 'envelope': {
+          const feats = [];
+          l1.fc.features.forEach(f => {
+            try {
+              const b = turf.bbox(f);
+              const p = turf.bboxPolygon(b, {properties: {...f.properties}});
+              if (p) feats.push(p);
+            } catch(e) {}
+          });
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_envelopes`;
+          break;
+        }
+
+        case 'simplify': {
+          const tol = +document.getElementById('op-tol').value;
+          if (tol <= 0) { notify('Tolerance must be > 0', 'er'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f => {
+            try {
+              const s = turf.simplify(f, {tolerance:tol, highQuality:true, mutate:false});
+              if (s) feats.push(s);
+            } catch(e) { feats.push(f); }
+          });
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_simplified`;
+          break;
+        }
+
+        case 'dissolve': {
+          try {
+            result = turf.dissolve(l1.fc);
+          } catch(e) {
+            // fallback: manual union
+            let merged = null;
+            l1.fc.features.forEach(f => {
+              try {
+                merged = merged ? turf.union(merged, f) : f;
+              } catch(e2) {}
+            });
+            result = merged ? turf.featureCollection([merged]) : null;
+          }
+          rname = `${l1.name}_dissolved`;
+          break;
+        }
+
+        case 'voronoi': {
+          const pointFeats = l1.fc.features.filter(f =>
+            f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint'
+          );
+          if (pointFeats.length < 3) {
+            notify('Voronoi needs ≥ 3 point features', 'wn'); hideLdg(); return;
+          }
+          try {
+            const pts  = turf.featureCollection(pointFeats);
+            const bbox = turf.bbox(turf.buffer(turf.bboxPolygon(turf.bbox(pts)), 0.5));
+            result     = turf.voronoi(pts, {bbox});
+          } catch(e) {
+            notify('Voronoi failed: ' + e.message, 'er'); hideLdg(); return;
+          }
+          rname = `${l1.name}_voronoi`;
+          break;
+        }
+
+        case 'tin': {
+          const pointFeats = l1.fc.features.filter(f =>
+            f.geometry?.type === 'Point'
+          );
+          if (pointFeats.length < 3) {
+            notify('TIN needs ≥ 3 point features', 'wn'); hideLdg(); return;
+          }
+          try {
+            result = turf.tin(turf.featureCollection(pointFeats));
+          } catch(e) {
+            notify('TIN failed: ' + e.message, 'er'); hideLdg(); return;
+          }
+          rname = `${l1.name}_tin`;
+          break;
+        }
+
+        case 'union': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f1 => {
+            l2.fc.features.forEach(f2 => {
+              try {
+                const u = turf.union(f1, f2);
+                if (u) feats.push(u);
+              } catch(e) {}
+            });
+          });
+          result = feats.length
+            ? turf.featureCollection(feats)
+            : turf.featureCollection([...l1.fc.features, ...l2.fc.features]);
+          rname = `${l1.name}_union_${l2.name}`;
+          break;
+        }
+
+        case 'intersect': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f1 => {
+            l2.fc.features.forEach(f2 => {
+              try {
+                const i = turf.intersect(f1, f2);
+                if (i) feats.push(i);
+              } catch(e) {}
+            });
+          });
+          if (!feats.length) { notify('No overlapping features found', 'wn'); hideLdg(); return; }
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_intersect_${l2.name}`;
+          break;
+        }
+
+        case 'difference': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f1 => {
+            let diff = f1;
+            l2.fc.features.forEach(f2 => {
+              if (!diff) return;
+              try { diff = turf.difference(diff, f2); } catch(e) {}
+            });
+            if (diff) feats.push(diff);
+          });
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_diff_${l2.name}`;
+          break;
+        }
+
+        case 'clip': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          // Build unified mask from l2
+          let mask = null;
+          l2.fc.features.forEach(f => {
+            if (!f.geometry?.type.includes('Polygon')) return;
+            try { mask = mask ? turf.union(mask, f) : f; } catch(e) {}
+          });
+          if (!mask) { notify('Clip mask has no polygon features', 'wn'); hideLdg(); return; }
+          const feats = [];
+          l1.fc.features.forEach(f => {
+            try {
+              const c = turf.intersect(f, mask);
+              if (c) feats.push(c);
+            } catch(e) {}
+          });
+          if (!feats.length) { notify('No features within clip mask', 'wn'); hideLdg(); return; }
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_clipped`;
+          break;
+        }
+
+        case 'symdiff': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          const feats = [];
+          // A - B
+          l1.fc.features.forEach(f1 => {
+            let diff = f1;
+            l2.fc.features.forEach(f2 => {
+              if (!diff) return;
+              try { diff = turf.difference(diff, f2); } catch(e) {}
+            });
+            if (diff) feats.push(diff);
+          });
+          // B - A
+          l2.fc.features.forEach(f2 => {
+            let diff = f2;
+            l1.fc.features.forEach(f1 => {
+              if (!diff) return;
+              try { diff = turf.difference(diff, f1); } catch(e) {}
+            });
+            if (diff) feats.push(diff);
+          });
+          result = turf.featureCollection(feats);
+          rname  = `${l1.name}_symdiff_${l2.name}`;
+          break;
+        }
+
+        case 'calcarea': {
+          let tot = 0, mn = Infinity, mx = 0, cnt = 0;
+          l1.fc.features.forEach(f => {
+            try {
+              const a = turf.area(f);
+              tot += a; cnt++;
+              if (a < mn) mn = a;
+              if (a > mx) mx = a;
+            } catch(e) {}
+          });
+          notify(
+            `Area: Total ${fmtArea(tot)} · ` +
+            `Min ${fmtArea(mn)} · Max ${fmtArea(mx)} · ` +
+            `${cnt} features`, 'nfo'
+          );
+          hideLdg(); return;
+        }
+
+        case 'calclength': {
+          let tot = 0, mn = Infinity, mx = 0, cnt = 0;
+          l1.fc.features.forEach(f => {
+            try {
+              const len = turf.length(f, {units:'kilometers'});
+              tot += len; cnt++;
+              if (len < mn) mn = len;
+              if (len > mx) mx = len;
+            } catch(e) {}
+          });
+          notify(
+            `Length: Total ${fmtDist(tot)} · ` +
+            `Min ${fmtDist(mn)} · Max ${fmtDist(mx)} · ` +
+            `${cnt} features`, 'nfo'
+          );
+          hideLdg(); return;
+        }
+
+        case 'nearestdist': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          let minD = Infinity;
+          l1.fc.features.forEach(f1 => {
+            l2.fc.features.forEach(f2 => {
+              try {
+                const d = turf.distance(turf.centroid(f1), turf.centroid(f2),
+                  {units:'kilometers'});
+                if (d < minD) minD = d;
+              } catch(e) {}
+            });
+          });
+          notify(`Nearest distance: ${minD === Infinity ? 'N/A' : fmtDist(minD)}`, 'nfo');
+          hideLdg(); return;
+        }
+
+        case 'pointsinpoly': {
+          if (!l2) { notify('Select two layers', 'er'); hideLdg(); return; }
+          const counts = {};
+          l2.fc.features.forEach((poly, pi) => { counts[pi] = 0; });
+          l1.fc.features.forEach(pt => {
+            l2.fc.features.forEach((poly, pi) => {
+              try {
+                if (turf.booleanPointInPolygon(pt, poly)) counts[pi]++;
+              } catch(e) {}
+            });
+          });
+          // Add count as attribute to polygon layer
+          const feats = l2.fc.features.map((f, pi) => ({
+            ...f,
+            properties: {...f.properties, point_count: counts[pi]}
+          }));
+          result = turf.featureCollection(feats);
+          rname  = `${l2.name}_point_counts`;
+          break;
+        }
+      }
+
+      if (result && result.features && result.features.length) {
+        addLayer(rname, result);
+        notify(`✓ ${OP_DEFS[op].title} → ${result.features.length} features`, 'ok');
+      } else if (result) {
+        notify(`${OP_DEFS[op].title} produced no features`, 'wn');
+      }
+
+    } catch(e) {
+      notify(`Operation failed: ${e.message}`, 'er');
+      console.error(e);
+    }
+    hideLdg();
+  }, 50);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════════════════ */
+const FORMATS = [
+  {id:'geojson', ico:'{}',   lbl:'GeoJSON', ext:'.geojson'},
+  {id:'kml',     ico:'📍',   lbl:'KML',     ext:'.kml'},
+  {id:'kmz',     ico:'📦',   lbl:'KMZ',     ext:'.kmz'},
+  {id:'gpx',     ico:'🗺',   lbl:'GPX',     ext:'.gpx'},
+  {id:'csv',     ico:'📊',   lbl:'CSV+WKT', ext:'.csv'},
+  {id:'shp',     ico:'🗃',   lbl:'SHP+ZIP', ext:'.zip'}
+];
+
+function openExpModal() {
+  if (!G.layers.length) { notify('No layers to export', 'wn'); return; }
+  const sel = document.getElementById('exp-layer-sel');
+  sel.innerHTML = G.layers.map(l =>
+    `<option value="${l.id}" ${l.id===G.active?'selected':''}>${escHtml(l.name)}</option>`
+  ).join('');
+
+  const grid = document.getElementById('fmt-grid');
+  grid.innerHTML = FORMATS.map((f,i) => `
+    <div class="fmt-opt ${i===0?'sel':''}" onclick="selectFmt('${f.id}')">
+      <input type="radio" name="exp-fmt" value="${f.id}" ${i===0?'checked':''} style="display:none">
+      <div class="fmt-ico">${f.ico}</div>
+      <div class="fmt-lbl">${f.lbl}</div>
+      <div class="fmt-ext">${f.ext}</div>
+    </div>`).join('');
+
+  document.getElementById('exp-modal').classList.add('vis');
+}
+
+function selectFmt(id) {
+  document.querySelectorAll('.fmt-opt').forEach(el => el.classList.remove('sel'));
+  const el = [...document.querySelectorAll('.fmt-opt')]
+    .find(el => el.querySelector('input')?.value === id);
+  if (el) el.classList.add('sel');
+  const inp = document.querySelector(`input[name="exp-fmt"][value="${id}"]`);
+  if (inp) inp.checked = true;
+}
+
+function closeExpModal() {
+  document.getElementById('exp-modal').classList.remove('vis');
+}
+
+function doExport() {
+  const layerId = +document.getElementById('exp-layer-sel').value;
+  const fmt     = document.querySelector('input[name="exp-fmt"]:checked')?.value || 'geojson';
+  const l       = G.layers.find(l => l.id === layerId);
+  if (!l) { notify('Layer not found', 'er'); return; }
+  closeExpModal();
+  showLdg(`Exporting as ${fmt.toUpperCase()}…`);
+  setTimeout(() => {
+    try {
+      switch(fmt) {
+        case 'geojson': expGeoJSON(l); break;
+        case 'kml':     expKML(l, false); break;
+        case 'kmz':     expKMZ(l); break;
+        case 'gpx':     expGPX(l); break;
+        case 'csv':     expCSV(l); break;
+        case 'shp':     expSHP(l); break;
+      }
+    } catch(e) {
+      notify(`Export failed: ${e.message}`, 'er');
+      console.error(e);
+    }
+    hideLdg();
+  }, 40);
+}
+
+/* ── GeoJSON export ── */
+function expGeoJSON(l) {
+  dlBlob(
+    new Blob([JSON.stringify(l.fc, null, 2)], {type:'application/json'}),
+    `${l.name}.geojson`
+  );
+  notify(`Exported ${l.name}.geojson`, 'ok');
+}
+
+/* ── KML builder helpers ── */
+function xmlEsc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function coordsToKML(coords) {
+  return coords.map(c => `${c[0]},${c[1]},0`).join(' ');
+}
+
+function geomToKML(g) {
+  if (!g) return '';
+  switch(g.type) {
+    case 'Point':
+      return `<Point><coordinates>${g.coordinates[0]},${g.coordinates[1]},0</coordinates></Point>`;
+    case 'MultiPoint':
+      return `<MultiGeometry>${g.coordinates.map(c =>
+        `<Point><coordinates>${c[0]},${c[1]},0</coordinates></Point>`).join('')}</MultiGeometry>`;
+    case 'LineString':
+      return `<LineString><coordinates>${coordsToKML(g.coordinates)}</coordinates></LineString>`;
+    case 'MultiLineString':
+      return `<MultiGeometry>${g.coordinates.map(l =>
+        `<LineString><coordinates>${coordsToKML(l)}</coordinates></LineString>`).join('')}</MultiGeometry>`;
+    case 'Polygon': {
+      let s = '<Polygon>';
+      g.coordinates.forEach((ring, i) => {
+        s += i === 0
+          ? `<outerBoundaryIs><LinearRing><coordinates>${coordsToKML(ring)}</coordinates></LinearRing></outerBoundaryIs>`
+          : `<innerBoundaryIs><LinearRing><coordinates>${coordsToKML(ring)}</coordinates></LinearRing></innerBoundaryIs>`;
+      });
+      return s + '</Polygon>';
+    }
+    case 'MultiPolygon':
+      return `<MultiGeometry>${g.coordinates.map(poly => {
+        let s = '<Polygon>';
+        poly.forEach((ring, i) => {
+          s += i === 0
+            ? `<outerBoundaryIs><LinearRing><coordinates>${coordsToKML(ring)}</coordinates></LinearRing></outerBoundaryIs>`
+            : `<innerBoundaryIs><LinearRing><coordinates>${coordsToKML(ring)}</coordinates></LinearRing></innerBoundaryIs>`;
+        });
+        return s + '</Polygon>';
+      }).join('')}</MultiGeometry>`;
+    default: return '';
+  }
+}
+
+function buildKMLString(l) {
+  const pms = l.fc.features.map((f, i) => {
+    const name = f.properties?.name || f.properties?.Name || `Feature ${i+1}`;
+    const props = Object.entries(f.properties || {})
+      .filter(([k,v]) => v !== null && v !== undefined)
+      .map(([k,v]) => `<Data name="${xmlEsc(k)}"><value>${xmlEsc(String(v))}</value></Data>`)
+      .join('');
+    return `<Placemark><name>${xmlEsc(name)}</name>${props ? `<ExtendedData>${props}</ExtendedData>` : ''}${geomToKML(f.geometry)}</Placemark>`;
+  }).join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`+
+    `<kml xmlns="http://www.opengis.net/kml/2.2">\n`+
+    `<Document><name>${xmlEsc(l.name)}</name>\n${pms}\n</Document>\n</kml>`;
+}
+
+function expKML(l) {
+  dlBlob(
+    new Blob([buildKMLString(l)], {type:'application/vnd.google-earth.kml+xml'}),
+    `${l.name}.kml`
+  );
+  notify(`Exported ${l.name}.kml`, 'ok');
+}
+
+function expKMZ(l) {
+  const zip = new JSZip();
+  zip.file('doc.kml', buildKMLString(l));
+  zip.generateAsync({type:'blob'}).then(blob => {
+    dlBlob(blob, `${l.name}.kmz`);
+    notify(`Exported ${l.name}.kmz`, 'ok');
+  });
+}
+
+/* ── GPX export ── */
+function expGPX(l) {
+  const pts  = [];
+  const trks = [];
+  l.fc.features.forEach((f, i) => {
+    const g    = f.geometry;
+    const name = f.properties?.name || f.properties?.Name || `Feature ${i+1}`;
+    if (!g) return;
+    if (g.type === 'Point') {
+      pts.push(`<wpt lat="${g.coordinates[1]}" lon="${g.coordinates[0]}"><name>${xmlEsc(name)}</name></wpt>`);
+    } else if (g.type === 'MultiPoint') {
+      g.coordinates.forEach((c,j) =>
+        pts.push(`<wpt lat="${c[1]}" lon="${c[0]}"><name>${xmlEsc(name)} ${j+1}</name></wpt>`)
+      );
+    } else if (g.type === 'LineString') {
+      trks.push(`<trk><name>${xmlEsc(name)}</name><trkseg>${
+        g.coordinates.map(c => `<trkpt lat="${c[1]}" lon="${c[0]}"></trkpt>`).join('')
+      }</trkseg></trk>`);
+    } else if (g.type === 'MultiLineString') {
+      trks.push(`<trk><name>${xmlEsc(name)}</name>${
+        g.coordinates.map(seg => `<trkseg>${
+          seg.map(c => `<trkpt lat="${c[1]}" lon="${c[0]}"></trkpt>`).join('')
+        }</trkseg>`).join('')
+      }</trk>`);
+    }
+    // Polygons: export ring as track
+    else if (g.type === 'Polygon') {
+      trks.push(`<trk><name>${xmlEsc(name)}</name><trkseg>${
+        g.coordinates[0].map(c => `<trkpt lat="${c[1]}" lon="${c[0]}"></trkpt>`).join('')
+      }</trkseg></trk>`);
+    }
+  });
+
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`+
+    `<gpx version="1.1" creator="GeoVec Studio — Cogniterra Labs" `+
+    `xmlns="http://www.topografix.com/GPX/1/1">\n`+
+    `<metadata><name>${xmlEsc(l.name)}</name></metadata>\n`+
+    pts.join('\n') + '\n' + trks.join('\n') + '\n</gpx>';
+
+  dlBlob(new Blob([gpx], {type:'application/gpx+xml'}), `${l.name}.gpx`);
+  notify(`Exported ${l.name}.gpx`, 'ok');
+}
+
+/* ── CSV export ── */
+function geomToWKT(g) {
+  if (!g) return '';
+  try {
+    switch(g.type) {
+      case 'Point':
+        return `POINT(${g.coordinates[0]} ${g.coordinates[1]})`;
+      case 'MultiPoint':
+        return `MULTIPOINT(${g.coordinates.map(c=>c.join(' ')).join(',')})`;
+      case 'LineString':
+        return `LINESTRING(${g.coordinates.map(c=>c.join(' ')).join(',')})`;
+      case 'MultiLineString':
+        return `MULTILINESTRING(${g.coordinates.map(l=>`(${l.map(c=>c.join(' ')).join(',')})`).join(',')})`;
+      case 'Polygon':
+        return `POLYGON(${g.coordinates.map(r=>`(${r.map(c=>c.join(' ')).join(',')})`).join(',')})`;
+      case 'MultiPolygon':
+        return `MULTIPOLYGON(${g.coordinates.map(poly=>`(${poly.map(r=>`(${r.map(c=>c.join(' ')).join(',')})`).join(',')})`).join(',')})`;
+      default: return '';
+    }
+  } catch(e) { return ''; }
+}
+
+function csvVal(v) {
+  const s = String(v ?? '');
+  return (s.includes(',') || s.includes('"') || s.includes('\n'))
+    ? `"${s.replace(/"/g,'""')}"` : s;
+}
+
+function expCSV(l) {
+  if (!l.fc.features.length) { notify('No features', 'wn'); return; }
+  const propKeys = Object.keys(l.fc.features[0]?.properties || {});
+  const header = ['longitude','latitude','geometry_type','wkt',...propKeys].join(',');
+  const rows = [header];
+
+  l.fc.features.forEach(f => {
+    const g    = f.geometry;
+    let lon='', lat='', gtype = g?.type || '';
+    if (g?.type === 'Point') { lon = g.coordinates[0]; lat = g.coordinates[1]; }
+    else if (g?.type === 'MultiPoint') { lon = g.coordinates[0]?.[0]||''; lat = g.coordinates[0]?.[1]||''; }
+    else {
+      try {
+        const c = turf.centroid(f);
+        lon = c.geometry.coordinates[0].toFixed(6);
+        lat = c.geometry.coordinates[1].toFixed(6);
+      } catch(e) {}
+    }
+    const wkt   = geomToWKT(g);
+    const props = propKeys.map(k => csvVal(f.properties?.[k] ?? ''));
+    rows.push([lon, lat, gtype, csvVal(wkt), ...props].join(','));
+  });
+
+  dlBlob(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'}), `${l.name}.csv`);
+  notify(`Exported ${l.name}.csv (${l.fc.features.length} rows)`, 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHP BINARY EXPORT
+═══════════════════════════════════════════════════════════ */
+function concatBufs(bufs) {
+  const total = bufs.reduce((s,b) => s + b.byteLength, 0);
+  const out   = new Uint8Array(total);
+  let off = 0;
+  bufs.forEach(b => { out.set(new Uint8Array(b), off); off += b.byteLength; });
+  return out.buffer;
+}
+
+function shpFileHeader(shpType, fileLenWords, bbox) {
+  const buf = new ArrayBuffer(100);
+  const v   = new DataView(buf);
+  v.setInt32(0,  9994, false);   // file code (big-endian)
+  v.setInt32(24, fileLenWords, false); // file length in 16-bit words (big-endian)
+  v.setInt32(28, 1000, true);    // version (little-endian)
+  v.setInt32(32, shpType, true); // shape type
+  v.setFloat64(36, bbox[0], true); // Xmin
+  v.setFloat64(44, bbox[1], true); // Ymin
+  v.setFloat64(52, bbox[2], true); // Xmax
+  v.setFloat64(60, bbox[3], true); // Ymax
+  // Zmin,Zmax,Mmin,Mmax = 0 (offsets 68,76,84,92)
+  return buf;
+}
+
+function shpRecordHeader(recNum, contentLenWords) {
+  const buf = new ArrayBuffer(8);
+  const v   = new DataView(buf);
+  v.setInt32(0, recNum, false);            // record number (1-based, big-endian)
+  v.setInt32(4, contentLenWords, false);   // content length in 16-bit words (big-endian)
+  return buf;
+}
+
+function shpPointContent(x, y) {
+  const buf = new ArrayBuffer(20); // 4 + 8 + 8
+  const v   = new DataView(buf);
+  v.setInt32(0,  1, true); // shape type = Point
+  v.setFloat64(4,  x, true);
+  v.setFloat64(12, y, true);
+  return buf;
+}
+
+function shpPolyContent(rings, shpType) {
+  // Compute bounding box
+  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+  rings.forEach(ring => ring.forEach(([x,y]) => {
+    if(x<xmin)xmin=x; if(y<ymin)ymin=y; if(x>xmax)xmax=x; if(y>ymax)ymax=y;
+  }));
+
+  const nParts  = rings.length;
+  const nPoints = rings.reduce((s,r) => s + r.length, 0);
+  // Content: 4(type)+32(bbox)+4(nparts)+4(npoints)+nparts*4(parts)+npoints*16(points)
+  const size = 4 + 32 + 4 + 4 + nParts * 4 + nPoints * 16;
+  const buf  = new ArrayBuffer(size);
+  const v    = new DataView(buf);
+
+  let off = 0;
+  v.setInt32(off, shpType, true); off += 4;
+  v.setFloat64(off, xmin, true); off += 8;
+  v.setFloat64(off, ymin, true); off += 8;
+  v.setFloat64(off, xmax, true); off += 8;
+  v.setFloat64(off, ymax, true); off += 8;
+  v.setInt32(off, nParts, true);  off += 4;
+  v.setInt32(off, nPoints, true); off += 4;
+
+  // Parts array
+  let pidx = 0;
+  rings.forEach(ring => {
+    v.setInt32(off, pidx, true); off += 4;
+    pidx += ring.length;
+  });
+
+  // Points
+  rings.forEach(ring => {
+    ring.forEach(([x,y]) => {
+      v.setFloat64(off, x, true); off += 8;
+      v.setFloat64(off, y, true); off += 8;
+    });
+  });
+
+  return buf;
+}
+
+function getRings(geom) {
+  if (!geom) return [];
+  switch(geom.type) {
+    case 'LineString':     return [geom.coordinates];
+    case 'MultiLineString':return geom.coordinates;
+    case 'Polygon':        return geom.coordinates;
+    case 'MultiPolygon':   return geom.coordinates.flat(1);
+    default: return [];
+  }
+}
+
+function writeDBF(features) {
+  if (!features.length) {
+    // Minimal empty DBF
+    const buf = new ArrayBuffer(33); const v = new DataView(buf);
+    v.setUint8(0,3); v.setInt32(4,0,true); v.setInt16(8,33,true); v.setInt16(10,1,true);
+    v.setUint8(32,0x0D); v.setUint8(33-1,0x1A); return buf;
+  }
+
+  const propKeys = Object.keys(features[0].properties || {});
+  // Build field descriptors: truncate names to 10 chars, compute max field width
+  const fields = propKeys.map(key => {
+    const name = key.substring(0,10);
+    let maxLen = name.length;
+    features.forEach(f => {
+      const v = String(f.properties?.[key] ?? '');
+      if (v.length > maxLen) maxLen = v.length;
+    });
+    const flen = Math.min(Math.max(maxLen, 1), 254);
+    return {name, flen, orig: key};
+  });
+
+  const hdrSize = 32 + fields.length * 32 + 1; // +1 for 0x0D terminator
+  const recSize = 1 + fields.reduce((s, f) => s + f.flen, 0);
+  const nRec    = features.length;
+  const bufSize = hdrSize + nRec * recSize + 1; // +1 for 0x1A EOF
+
+  const buf = new ArrayBuffer(bufSize);
+  const u   = new Uint8Array(buf);
+  const v   = new DataView(buf);
+
+  // Header
+  u[0] = 0x03; // version
+  const d = new Date();
+  u[1] = d.getFullYear() - 1900; u[2] = d.getMonth() + 1; u[3] = d.getDate();
+  v.setInt32(4, nRec, true);
+  v.setInt16(8, hdrSize, true);
+  v.setInt16(10, recSize, true);
+
+  // Field descriptors
+  let fo = 32;
+  fields.forEach(f => {
+    for (let i = 0; i < f.name.length; i++) u[fo + i] = f.name.charCodeAt(i);
+    u[fo + 11] = 0x43; // 'C' = character type
+    u[fo + 16] = f.flen;
+    fo += 32;
+  });
+  u[fo] = 0x0D; // header terminator
+
+  // Records
+  let ro = hdrSize;
+  features.forEach(feat => {
+    u[ro] = 0x20; // valid record flag
+    let vo = ro + 1;
+    fields.forEach(f => {
+      const raw = String(feat.properties?.[f.orig] ?? '').substring(0, f.flen);
+      const padded = raw.padEnd(f.flen, ' ');
+      for (let i = 0; i < f.flen; i++)
+        u[vo + i] = padded.charCodeAt(i) || 0x20;
+      vo += f.flen;
+    });
+    ro += recSize;
+  });
+
+  u[ro] = 0x1A; // EOF marker
+  return buf;
+}
+
+const PRJ_WGS84 = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'
+  + 'SPHEROID["WGS_1984",6378137.0,298.257223563]],'
+  + 'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+
+function expSHP(l) {
+  const features = l.fc.features.filter(f =>
+    f && f.geometry && f.geometry.coordinates
+  );
+  if (!features.length) { notify('No valid features', 'er'); return; }
+
+  const type = l.type;
+  let shpType;
+  if (type === 'Point' || type === 'MultiPoint') shpType = 1;
+  else if (type.includes('Line')) shpType = 3;
+  else if (type.includes('Polygon')) shpType = 5;
+  else if (type === 'Mixed') {
+    // Try to determine dominant type
+    const typeCounts = {};
+    features.forEach(f => {
+      const t = f.geometry?.type || 'Unknown';
+      typeCounts[t] = (typeCounts[t] || 0) + 1;
+    });
+    const dominant = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0][0];
+    if (dominant.includes('Polygon')) shpType = 5;
+    else if (dominant.includes('Line')) shpType = 3;
+    else shpType = 1;
+    notify('Mixed geometry: exporting dominant type only', 'wn');
+  } else {
+    notify(`Cannot export geometry type "${type}" as SHP`, 'er'); return;
+  }
+
+  // Compute bounding box across all features
+  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+  const updateBbox = coords => coords.forEach(([x,y]) => {
+    if(isFinite(x)&&isFinite(y)){
+      if(x<xmin)xmin=x;if(y<ymin)ymin=y;if(x>xmax)xmax=x;if(y>ymax)ymax=y;
+    }
+  });
+  features.forEach(f => {
+    const g = f.geometry;
+    if (g.type==='Point') updateBbox([g.coordinates]);
+    else if (g.type==='MultiPoint') updateBbox(g.coordinates);
+    else if (g.type==='LineString') updateBbox(g.coordinates);
+    else if (g.type==='MultiLineString') g.coordinates.forEach(l=>updateBbox(l));
+    else if (g.type==='Polygon') g.coordinates.forEach(r=>updateBbox(r));
+    else if (g.type==='MultiPolygon') g.coordinates.flat(1).forEach(r=>updateBbox(r));
+  });
+  if (!isFinite(xmin)) { xmin=xmax=ymin=ymax=0; }
+  const bbox = [xmin, ymin, xmax, ymax];
+
+  // Build SHP content buffers
+  const recContents = [];
+  features.forEach(f => {
+    const g = f.geometry;
+    if (!g) return;
+    try {
+      if (shpType === 1) {
+        const c = g.type==='Point' ? g.coordinates : g.coordinates[0];
+        recContents.push(shpPointContent(c[0], c[1]));
+      } else {
+        const rings = getRings(g);
+        if (rings.length) recContents.push(shpPolyContent(rings, shpType));
+      }
+    } catch(e) { console.warn('SHP record build error:', e.message); }
+  });
+
+  if (!recContents.length) { notify('No exportable geometries', 'er'); return; }
+
+  // Calculate file length
+  // 50 words (header) + sum of (4 words record header + content words) per record
+  let contentWords = 0;
+  recContents.forEach(c => contentWords += c.byteLength / 2);
+  const shpFileLenWords = 50 + recContents.length * 4 + contentWords;
+
+  // Build SHP file
+  const shpParts = [shpFileHeader(shpType, shpFileLenWords, bbox)];
+  recContents.forEach((c, i) => {
+    shpParts.push(shpRecordHeader(i + 1, c.byteLength / 2));
+    shpParts.push(c);
+  });
+  const shpBuf = concatBufs(shpParts);
+
+  // Build SHX file
+  const shxFileLenWords = 50 + recContents.length * 4;
+  const shxParts = [shpFileHeader(shpType, shxFileLenWords, bbox)];
+  let curOffset = 50; // starts after 100-byte header
+  recContents.forEach(c => {
+    const b = new ArrayBuffer(8);
+    const v = new DataView(b);
+    v.setInt32(0, curOffset, false);          // offset in words (big-endian)
+    v.setInt32(4, c.byteLength / 2, false);   // content length in words (big-endian)
+    shxParts.push(b);
+    curOffset += 4 + c.byteLength / 2;        // 4 words = 8 bytes record header
+  });
+  const shxBuf = concatBufs(shxParts);
+
+  // Build DBF
+  const dbfBuf = writeDBF(features);
+
+  // ZIP all together
+  const zip = new JSZip();
+  zip.file(`${l.name}.shp`, shpBuf);
+  zip.file(`${l.name}.shx`, shxBuf);
+  zip.file(`${l.name}.dbf`, dbfBuf);
+  zip.file(`${l.name}.prj`, PRJ_WGS84);
+  zip.generateAsync({type:'blob', compression:'DEFLATE'}).then(blob => {
+    dlBlob(blob, `${l.name}_shp.zip`);
+    notify(`Exported ${l.name}_shp.zip (SHP+SHX+DBF+PRJ, ${features.length} features)`, 'ok');
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════════════════ */
+function dlBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function showLdg(msg) {
+  document.getElementById('ldg-txt').textContent = msg || 'Processing…';
+  document.getElementById('ldg').classList.add('vis');
+}
+function hideLdg() {
+  document.getElementById('ldg').classList.remove('vis');
+}
+
+let ntfTimer = null;
+function notify(msg, type='nfo') {
+  const el = document.getElementById('ntf');
+  el.textContent = msg;
+  el.className = `ntf vis ${type}`;
+  clearTimeout(ntfTimer);
+  ntfTimer = setTimeout(() => el.classList.remove('vis'), 4800);
+}
+
+function showMeas(msg) {
+  const el = document.getElementById('meas-box');
+  el.textContent = msg;
+  el.classList.add('vis');
+}
+function hideMeas() {
+  document.getElementById('meas-box').classList.remove('vis');
+}
+
+function setStatus(msg) {
+  document.getElementById('sb-msg').textContent = msg;
+}
+
+function clearAll() {
+  if (!G.layers.length) return;
+  G.layers.forEach(l => G.map.removeLayer(l.ll));
+  G.layers = []; G.active = null;
+  cancelTool();
+  renderLayerList();
+  updateStats();
+  renderAttr();
+  notify('All layers cleared', 'nfo');
+}
+
+function fmtArea(m2) {
+  if (m2 >= 1e9)  return `${(m2 / 1e6).toFixed(1)} km²`;
+  if (m2 >= 1e6)  return `${(m2 / 1e6).toFixed(3)} km²`;
+  if (m2 >= 1e4)  return `${(m2 / 1e4).toFixed(2)} ha`;
+  return `${m2.toFixed(1)} m²`;
+}
+
+function fmtDist(km) {
+  if (km >= 1000) return `${km.toFixed(1)} km`;
+  if (km >= 1)    return `${km.toFixed(3)} km`;
+  return `${(km * 1000).toFixed(0)} m`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DRAG & DROP + INITIALIZATION
+═══════════════════════════════════════════════════════════ */
+function initDnD() {
+  const fi  = document.getElementById('fi');
+  const upz = document.getElementById('upz');
+
+  fi.addEventListener('change', e => {
+    if (e.target.files.length) handleFiles(e.target.files);
+    fi.value = ''; // allow re-uploading same file
+  });
+
+  upz.addEventListener('dragover',  e => { e.preventDefault(); upz.classList.add('dov'); });
+  upz.addEventListener('dragleave', () => upz.classList.remove('dov'));
+  upz.addEventListener('drop', e => {
+    e.preventDefault(); upz.classList.remove('dov');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+
+  // Allow dropping anywhere on the page
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+
+  // Close modals on overlay click
+  document.getElementById('op-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeOpModal();
+  });
+  document.getElementById('exp-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeExpModal();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') cancelTool();
+    if (e.key === 'Delete' && G.active && !document.activeElement.matches('input,textarea,select')) {
+      if (confirm('Remove active layer?')) removeLayer(G.active);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  initDnD();
+  notify('GeoVec Studio ready — Cogniterra Labs', 'nfo');
+});
+</script>
+</body>
+</html>
